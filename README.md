@@ -151,3 +151,5 @@ Treehole-Art 目前通过旧版 `/web/` 入口承载自定义界面，因此会�
 ## 📋 LICENSE
 
 Treehole-Art 基于 [GNU General Public License v3.0](./LICENSE) 开源。
+
+Special thanks to `gpt-5.6-sol` and `codex`.
