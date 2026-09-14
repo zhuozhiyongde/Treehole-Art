@@ -12,7 +12,7 @@ Treehole-Art 是一款通过浏览器扩展安装的用户脚本（UserScript）
 
 <div align="center">
 
-[✨ 功能](#-功能) · [📦 安装](#-安装) · [🚨 使用须知](#-使用须知) · [🔎 搜索与复制](#-搜索与复制) · [🧑‍💻 贡献](#-贡献) · [💬 Q&A](#-qa)
+[✨ 功能](#-功能) · [📦 安装](#-安装) · [🚨 使用须知](#-使用须知) · [🔎 搜索与复制](#-搜索与复制) · [🧑‍💻 贡献](#-贡献) · [🚀 发版](#-发版) · [💬 Q&A](#-qa)
 
 </div>
 
@@ -48,7 +48,11 @@ Treehole-Art 是一款通过浏览器扩展安装的用户脚本（UserScript）
 
 ## 📦 安装
 
-Treehole-Art 当前需要从源码构建。请先安装 [Bun](https://bun.sh/) 以及 Tampermonkey、Violentmonkey 等用户脚本管理扩展。
+请先安装 Tampermonkey、Violentmonkey 等用户脚本管理扩展，然后打开以下地址并按扩展提示安装：
+
+> [安装 Treehole-Art](https://cdn.arthals.ink/release/Treehole-Art.user.js)
+
+脚本会通过同一地址自动检查更新。也可以从源码构建：
 
 1. 克隆本项目：
 
@@ -121,6 +125,10 @@ Treehole-Art 当前需要从源码构建。请先安装 [Bun](https://bun.sh/) �
     ```
 
 接口与数据结构说明参见 [API.md](./API.md)。完成修改后即可发起 Pull Request。
+
+## 🚀 发版
+
+维护者可以用 `bun run release` 完成测试、用户脚本构建、CDN 上传与刷新，以及 GitHub Release 发布。密钥配置、版本规则、发布演练和故障恢复参见 [RELEASE.md](./RELEASE.md)。
 
 ## 💬 Q&A
 

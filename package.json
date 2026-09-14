@@ -1,13 +1,14 @@
 {
   "name": "treehole-art",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "packageManager": "bun@1.2.20",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:userscript": "tsc -b && TREEHOLE_ART=1 vite build",
+    "release": "bun scripts/release.ts",
     "test": "vitest run",
     "preview": "vite preview"
   },
@@ -17,9 +18,11 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1132.0",
+    "@types/bun": "1.2.20",
+    "@types/node": "^24.3.1",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
-    "@types/node": "^24.3.1",
     "@vitejs/plugin-react": "^5.0.2",
     "playwright": "^1.63.0",
     "typescript": "^5.9.2",

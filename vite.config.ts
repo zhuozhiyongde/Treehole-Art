@@ -1,8 +1,15 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import monkey from "vite-plugin-monkey";
+import { readFileSync } from "node:fs";
 
 const isUserscript = process.env.TREEHOLE_ART === "1";
+const { version } = JSON.parse(
+  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+) as { version: string };
+const releaseUrl =
+  process.env.CDN_PUBLIC_URL ||
+  "https://cdn.arthals.ink/release/Treehole-Art.user.js";
 
 export default defineConfig({
   plugins: [
@@ -14,9 +21,14 @@ export default defineConfig({
             userscript: {
               name: "Treehole-Art",
               namespace: "https://treehole.pku.edu.cn/",
-              version: "1.0.0",
+              version,
               description: "为北大树洞打造的现代化第三方界面",
-              icon: "http://cdn.arthals.ink/Arthals-mcskin.png",
+              icon: "https://cdn.arthals.ink/Arthals-mcskin.png",
+              author: "Arthals",
+              supportURL:
+                "https://github.com/zhuozhiyongde/Treehole-Art/issues",
+              updateURL: releaseUrl,
+              downloadURL: releaseUrl,
               match: [
                 "https://treehole.pku.edu.cn/web/*",
                 "https://treehole.pku.edu.cn/ch/*",

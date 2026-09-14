@@ -1,6 +1,9 @@
 node_modules/
 .DS_Store
 *.tsbuildinfo
+.env
+.env.*
+!.env.example
 
 # Treehole-Art uses Bun exclusively.
 package-lock.json
