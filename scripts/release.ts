@@ -1,6 +1,11 @@
 import { createHmac } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  createChangelogDraft,
+  nextPatchVersion,
+  releaseNotesFor,
+} from "./release-workflow.ts";
 
 type DogeCloudResponse<T> = {
   code: number;
@@ -23,12 +28,19 @@ type CommandResult = {
 };
 
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
+const packageJsonPath = fileURLToPath(
+  new URL("../package.json", import.meta.url),
+);
+const changelogPath = fileURLToPath(
+  new URL("../CHANGELOG.md", import.meta.url),
+);
 const artifactPath = fileURLToPath(
   new URL("../dist/Treehole-Art.user.js", import.meta.url),
 );
-const packageJson = (await Bun.file(
-  new URL("../package.json", import.meta.url),
-).json()) as { version: string };
+const packageJson = (await Bun.file(packageJsonPath).json()) as Record<
+  string,
+  unknown
+> & { version: string };
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.delete("--dry-run");
@@ -39,7 +51,7 @@ if (args.has("--help") || args.has("-h")) {
 
 选项：
   --dry-run   运行测试和构建并校验产物，不上传或创建 Release
-  --cdn-only  只发布到 CDN，不创建 GitHub Release
+  --cdn-only  只发布到 CDN，不创建 GitHub Release 或推进版本号
   --help      显示帮助`);
   process.exit(0);
 }
@@ -147,21 +159,41 @@ async function dogeCloudApi<T>(
   return result.data;
 }
 
-function releaseNotesFor(targetVersion: string, changelog: string): string {
-  const headings = [...changelog.matchAll(/^##\s+\[([^\]]+)\].*$/gm)];
-  const headingIndex = headings.findIndex((match) => match[1] === targetVersion);
-  if (headingIndex === -1) {
-    throw new Error(`CHANGELOG.md 中没有 ${targetVersion} 的二级标题`);
+function localDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+async function ensureChangelogDraft(targetVersion: string): Promise<{
+  changelog: string;
+  created: boolean;
+}> {
+  const file = Bun.file(changelogPath);
+  const exists = await file.exists();
+  const changelog = exists ? await file.text() : "";
+
+  const updated = createChangelogDraft(
+    targetVersion,
+    changelog,
+    localDate(),
+  );
+  if (updated === undefined) {
+    return { changelog, created: false };
   }
 
-  const heading = headings[headingIndex];
-  const start = (heading.index ?? 0) + heading[0].length;
-  const end = headings[headingIndex + 1]?.index ?? changelog.length;
-  const notes = changelog.slice(start, end).trim();
-  if (!notes) {
-    throw new Error(`CHANGELOG.md 中 ${targetVersion} 的发布说明为空`);
-  }
-  return notes;
+  await Bun.write(changelogPath, updated);
+  console.log(`[ChangeLog] 已创建 ${targetVersion} 的发布说明草稿`);
+  return { changelog: updated, created: true };
+}
+
+async function advanceVersion(): Promise<string> {
+  const nextVersion = nextPatchVersion(version);
+  packageJson.version = nextVersion;
+  await Bun.write(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+  return nextVersion;
 }
 
 async function validateArtifact(): Promise<void> {
@@ -186,32 +218,8 @@ async function validateArtifact(): Promise<void> {
 }
 
 async function validateGitHubRelease(): Promise<{
-  commit: string;
   existingDraft: boolean;
 }> {
-  await run(["gh", "auth", "status", "--hostname", "github.com"]);
-
-  const status = await run(["git", "status", "--porcelain"], {
-    capture: true,
-  });
-  if (status.stdout) {
-    throw new Error("工作区存在未提交修改；请先提交本次版本的代码与日志");
-  }
-
-  const branch = (
-    await run(["git", "branch", "--show-current"], { capture: true })
-  ).stdout;
-  const commit = (await run(["git", "rev-parse", "HEAD"], { capture: true }))
-    .stdout;
-  const remote = await run(
-    ["git", "ls-remote", "origin", `refs/heads/${branch}`],
-    { capture: true },
-  );
-  const remoteCommit = remote.stdout.split(/\s+/)[0];
-  if (!branch || remoteCommit !== commit) {
-    throw new Error("当前提交尚未推送到 origin；请先 git push 再发布");
-  }
-
   const currentRelease = await run(
     [
       "gh",
@@ -230,15 +238,23 @@ async function validateGitHubRelease(): Promise<{
     if (!isDraft) {
       throw new Error(`GitHub Release ${tag} 已存在，拒绝重复发布`);
     }
-    return { commit, existingDraft: true };
+    return { existingDraft: true };
   }
 
-  return { commit, existingDraft: false };
+  const failure = `${currentRelease.stderr}\n${currentRelease.stdout}`;
+  if (!/release not found/i.test(failure)) {
+    throw new Error(
+      `无法检查 GitHub Release ${tag}：${
+        currentRelease.stderr || currentRelease.stdout || "gh 命令执行失败"
+      }`,
+    );
+  }
+
+  return { existingDraft: false };
 }
 
 async function publishGitHubDraft(
   notes: string,
-  commit: string,
   existingDraft: boolean,
 ): Promise<void> {
   const asset = `${artifactPath}#Treehole-Art.user.js`;
@@ -266,8 +282,6 @@ async function publishGitHubDraft(
     asset,
     "--repo",
     githubRepository,
-    "--target",
-    commit,
     "--title",
     `Treehole-Art ${tag}`,
     "--notes",
@@ -323,18 +337,20 @@ async function main(): Promise<void> {
     throw new Error(`package.json 中的版本号不是合法 SemVer：${version}`);
   }
 
-  const changelog = await Bun.file(
-    new URL("../CHANGELOG.md", import.meta.url),
-  ).text();
+  const { changelog, created } = await ensureChangelogDraft(version);
+  if (created) {
+    console.log("[待完善] 请填写 CHANGELOG.md 中的发布说明，然后重新运行发布命令");
+    return;
+  }
   const notes = releaseNotesFor(version, changelog);
 
-  let githubState: { commit: string; existingDraft: boolean } | undefined;
+  let githubState: { existingDraft: boolean } | undefined;
   if (!dryRun) {
-    requireEnvironment("DOGECLOUD_ACCESS_KEY");
-    requireEnvironment("DOGECLOUD_SECRET_KEY");
     if (!cdnOnly) {
       githubState = await validateGitHubRelease();
     }
+    requireEnvironment("DOGECLOUD_ACCESS_KEY");
+    requireEnvironment("DOGECLOUD_SECRET_KEY");
   }
 
   console.log(`[Release] Treehole-Art ${tag}`);
@@ -353,11 +369,7 @@ async function main(): Promise<void> {
   }
 
   if (githubState) {
-    await publishGitHubDraft(
-      notes,
-      githubState.commit,
-      githubState.existingDraft,
-    );
+    await publishGitHubDraft(notes, githubState.existingDraft);
   }
 
   await uploadToCdn();
@@ -373,6 +385,9 @@ async function main(): Promise<void> {
       githubRepository,
       "--draft=false",
     ]);
+
+    const nextVersion = await advanceVersion();
+    console.log(`[版本] ${version} -> ${nextVersion}`);
   }
 
   console.log(`[发布完成] ${publicUrl}`);
