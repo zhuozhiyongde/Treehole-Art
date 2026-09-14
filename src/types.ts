@@ -109,4 +109,5 @@ export interface PageResult<T> {
 }
 
 export type FeedMode = "latest" | "bookmarks";
+export type CommentViewMode = "modal" | "inline";
 export type ThemeMode = "system" | "light" | "dark";

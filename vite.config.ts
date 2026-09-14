@@ -14,7 +14,7 @@ export default defineConfig({
             userscript: {
               name: "Treehole-Art",
               namespace: "https://treehole.pku.edu.cn/",
-              version: "0.1.0",
+              version: "1.0.0",
               description: "为北大树洞打造的现代化第三方界面",
               icon: "http://cdn.arthals.ink/Arthals-mcskin.png",
               match: [

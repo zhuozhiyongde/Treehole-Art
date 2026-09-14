@@ -11,6 +11,7 @@
   --border: #e5e5e5;
   --border-strong: #d4d4d4;
   --pku-red: #8f000b;
+  --pku-red-emphasis: #8f000b;
   --accent: #9f1735;
   --active-icon: var(--accent);
   --accent-soft: #fff0f3;
@@ -51,6 +52,7 @@
   --border: #292929;
   --border-strong: #3b3b3b;
   --pku-red: #a51c30;
+  --pku-red-emphasis: #e44c47;
   --accent: #f08aa0;
   --active-icon: #e44c47;
   --accent-soft: #32141d;
@@ -161,7 +163,7 @@ button:disabled {
   text-align: left;
 }
 
-.brand:hover strong { color: var(--accent); }
+.brand:hover strong { color: var(--pku-red-emphasis); }
 
 .brand img {
   width: 32px;
@@ -228,12 +230,29 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 
 .rail-footer {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
   margin-top: auto;
   padding: 0 12px;
   color: var(--text-tertiary);
   font-size: 11px;
+}
+
+.rail-connection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rail-credit {
+  color: var(--text-tertiary);
+  font-size: 9px;
+  letter-spacing: 0.01em;
+}
+
+.rail-context-tools {
+  display: none;
 }
 
 .status-dot {
@@ -2689,6 +2708,50 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   .right-rail {
     display: none;
   }
+
+  .left-rail {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .rail-context-tools {
+    display: block;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .rail-context-tools section {
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rail-context-tools section + section {
+    padding-top: 14px;
+  }
+
+  .rail-context-tools .side-heading {
+    padding: 0 8px;
+  }
+
+  .rail-context-tools .side-bookmarks-section .side-options,
+  .rail-context-tools .side-tag-groups {
+    max-height: min(25vh, 210px);
+  }
+
+  .rail-context-tools .side-bookmark-delete {
+    opacity: 1;
+  }
+
+  .left-rail .rail-footer {
+    margin-top: 18px;
+    padding-top: 14px;
+  }
 }
 
 @media (max-width: 760px) {
@@ -2708,10 +2771,13 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
     position: fixed;
     top: 56px;
     right: 0;
+    bottom: calc(58px + env(safe-area-inset-bottom));
     left: 0;
     z-index: 90;
     display: none;
     width: 100%;
+    height: auto;
+    max-height: none;
     min-height: 0;
     padding: 10px 16px 14px;
     border: 0;
@@ -2724,7 +2790,7 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   }
 
   .left-rail.mobile-open {
-    display: block;
+    display: flex;
   }
 
   .mobile-drawer-scrim {
@@ -2745,9 +2811,31 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
     from { transform: translateY(-10px); opacity: 0; }
   }
 
-  .left-rail .brand,
-  .left-rail .rail-footer {
+  .left-rail .brand {
     display: none;
+  }
+
+  .rail-context-tools {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+
+  .rail-context-tools .side-bookmarks-section .side-options,
+  .rail-context-tools .side-tag-groups {
+    max-height: none;
+  }
+
+  .left-rail .rail-footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-right: 8px;
+    padding-bottom: 4px;
+  }
+
+  .side-tag-submenu {
+    width: min(280px, calc(100vw - 32px));
   }
 
   .left-rail nav button.active {
