@@ -196,7 +196,7 @@ export function AppView({ controller }: { controller: AppController }) {
                     <img src={PKU_LOGO_URL} alt="北京大学" />
                     <div>
                         <strong>北大树洞</strong>
-                        <span>Treehole Art @ Arthals</span>
+                        <span>Treehole Art</span>
                     </div>
                 </button>
                 <nav aria-label="主导航">

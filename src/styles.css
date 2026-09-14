@@ -2077,20 +2077,26 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 }
 
 .comments-inline .drawer-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 32px;
-  flex-basis: 60px;
+  display: flex;
+  flex: 0 0 60px;
+  height: 60px;
   gap: 9px;
   padding: 0 16px;
   border: 1px solid var(--border);
   border-radius: 6px 6px 0 0;
 }
 
-.comments-inline .drawer-header.without-close {
-  grid-template-columns: minmax(0, 1fr) auto;
+.comments-inline .drawer-header h2 {
+  min-width: 0;
+  margin-right: auto;
+}
+
+.comments-inline .comment-header-actions {
+  flex: 0 0 auto;
 }
 
 .comments-inline .drawer-close {
+  flex: 0 0 32px;
   position: static;
   color: var(--text-secondary);
 }
@@ -2563,6 +2569,14 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 
 .notification-tabs button {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
   border: 0;
   background: transparent;
   color: var(--text-tertiary);
@@ -2988,26 +3002,27 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   }
 
   .comments-drawer {
-    top: 28px;
+    top: 0;
     width: 100%;
-    height: calc(100% - 28px);
-    border-top: 1px solid var(--border);
+    height: 100%;
+    border-top: 0;
     border-left: 0;
-    border-radius: 8px 8px 0 0;
+    border-radius: 0;
   }
 
   .comments-drawer.is-empty {
-    height: calc(100% - 28px);
+    height: 100%;
   }
 
   .hole-detail-modal {
-    top: 28px;
+    top: 0;
     width: 100%;
-    height: calc(100% - 28px);
+    height: 100%;
+    border-top: 0;
     border-right: 0;
     border-bottom: 0;
     border-left: 0;
-    border-radius: 8px 8px 0 0;
+    border-radius: 0;
   }
 
   .hole-detail-header {
@@ -3080,15 +3095,16 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 
   .settings-dialog,
   .notification-dialog {
-    top: 28px;
+    top: 0;
     bottom: 0;
     width: 100%;
     height: auto;
     max-height: none;
+    border-top: 0;
     border-right: 0;
     border-bottom: 0;
     border-left: 0;
-    border-radius: 8px 8px 0 0;
+    border-radius: 0;
     transform: translateX(-50%);
   }
 
