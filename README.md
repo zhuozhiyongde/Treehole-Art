@@ -12,7 +12,7 @@ Treehole-Art 是一款通过浏览器扩展安装的用户脚本（UserScript）
 
 <div align="center">
 
-[✨ 功能](#-功能) · [📦 安装](#-安装) · [🚨 使用须知](#-使用须知) · [🔎 搜索与复制](#-搜索与复制) · [🧑‍💻 贡献](#-贡献) · [🚀 发版](#-发版) · [💬 Q&A](#-qa)
+[✨ 功能](#-功能) · [📦 安装](#-安装) · [🚨 使用须知](#-使用须知) · [🔎 搜索与复制](#-搜索与复制) · [🧑‍💻 贡献](#-贡献) · [🚀 发版](#-发版) · [💬 Q&A](#-qa) · [📋 LICENSE](#-license)
 
 </div>
 
@@ -48,30 +48,32 @@ Treehole-Art 是一款通过浏览器扩展安装的用户脚本（UserScript）
 
 ## 📦 安装
 
-请先安装 Tampermonkey、Violentmonkey 等用户脚本管理扩展，然后打开以下地址并按扩展提示安装：
+Treehole-Art 通过用户脚本安装，支持 Chrome、Edge、Arc 与 Safari。
 
-> [安装 Treehole-Art](https://cdn.arthals.ink/release/Treehole-Art.user.js)
+### 前置插件需求
 
-脚本会通过同一地址自动检查更新。也可以从源码构建：
+#### Chrome / Edge / Arc
 
-1. 克隆本项目：
+> [!WARNING]
+> 由于 Chrome 的权限策略更新，你可能需要先在扩展管理页面打开“开发者模式”，再在 Tampermonkey 的扩展详情中启用“允许运行用户脚本”。详见 [Tampermonkey FAQ](https://www.tampermonkey.net/faq.php?locale=zh#Q209)。
 
-    ```bash
-    git clone https://github.com/zhuozhiyongde/Treehole-Art.git
-    ```
+请先安装浏览器扩展 [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)，然后打开 [Treehole-Art 脚本页面](https://cdn.arthals.ink/release/Treehole-Art.user.js)，按照扩展提示完成安装。
 
-2. 安装依赖并构建用户脚本：
+#### Safari
 
-    ```bash
-    cd Treehole-Art
-    bun install
-    bun run build:userscript
-    ```
+请先安装 [Userscripts](https://apps.apple.com/cn/app/userscripts/id1463298887) 或 [Tampermonkey](https://apps.apple.com/cn/app/tampermonkey/id6738342400)，并在 Safari 的扩展设置中允许其访问树洞网站：
 
-3. 在用户脚本管理扩展中打开并安装 `dist/Treehole-Art.user.js`。
+- 使用 Userscripts 时，打开 [Treehole-Art 脚本页面](https://cdn.arthals.ink/release/Treehole-Art.user.js)，再点击工具栏中的 Userscripts 图标并选择安装。
+- 使用 Tampermonkey 时，打开上述脚本页面后会自动进入安装界面。
 
 > [!IMPORTANT]
-> Chromium 浏览器可能要求在扩展管理页面开启“开发者模式”和“允许运行用户脚本”。具体设置方式请参考所用脚本管理扩展的说明。
+> 请在 Safari 的“编辑网站”权限中将所用扩展设为始终允许，否则 Treehole-Art 可能无法在树洞页面运行。
+
+### 安装渠道
+
+- [CDN for JavaScript](https://cdn.arthals.ink/release/Treehole-Art.user.js)：每次发布后自动更新。
+
+安装完成后，脚本会通过同一地址自动检查并获取后续更新。
 
 ## 🚨 使用须知
 
@@ -140,8 +142,12 @@ Treehole-Art 是一款通过浏览器扩展安装的用户脚本（UserScript）
 
 Treehole-Art 目前通过旧版 `/web/` 入口承载自定义界面，因此会主动拦截 `/ch/*` 并跳转。页面内容和互动请求仍来自树洞服务。
 
-（在新版界面做类似修改存在一定冲突，图省事就直接重定向了。）
+在新版界面做类似修改存在一定冲突，图省事就直接重定向了。
 
 ### 本地开发会操作我的真实树洞账号吗？
 
 不会。通过 `bun dev` 打开的本地页面使用项目内置的演示（Mock）数据；只有安装用户脚本并访问真实树洞域名时才会调用线上接口。
+
+## 📋 LICENSE
+
+Treehole-Art 基于 [GNU General Public License v3.0](./LICENSE) 开源。

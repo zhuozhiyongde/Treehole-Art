@@ -2,6 +2,7 @@
   "name": "treehole-art",
   "private": true,
   "version": "1.0.0",
+  "license": "GPL-3.0-only",
   "packageManager": "bun@1.2.20",
   "type": "module",
   "scripts": {
