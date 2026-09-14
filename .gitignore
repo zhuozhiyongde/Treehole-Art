@@ -1,0 +1,11 @@
+node_modules/
+.DS_Store
+*.tsbuildinfo
+
+# Treehole-Art uses Bun exclusively.
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+reference/
+dist/

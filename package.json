@@ -1,0 +1,30 @@
+{
+  "name": "treehole-art",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "bun@1.2.20",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:userscript": "tsc -b && TREEHOLE_ART=1 vite build",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mingcute/react": "^3.0.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@types/node": "^24.3.1",
+    "@vitejs/plugin-react": "^5.0.2",
+    "playwright": "^1.63.0",
+    "typescript": "^5.9.2",
+    "vite": "^8.3.0",
+    "vite-plugin-monkey": "^8.1.1",
+    "vitest": "^4.0.0"
+  }
+}
