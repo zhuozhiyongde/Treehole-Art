@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./PKU.svg" alt="Treehole-Art" width="120" />
+<img src="./README.assets/cover.jpg" alt="Treehole-Art"/>
 
 # 🎨 Treehole-Art
 
