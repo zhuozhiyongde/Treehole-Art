@@ -71,7 +71,8 @@ const objectKey =
 const publicUrl =
   process.env.CDN_PUBLIC_URL ||
   "https://cdn.arthals.ink/release/Treehole-Art.user.js";
-const refreshUrl = process.env.CDN_REFRESH_URL || publicUrl;
+const refreshUrl =
+  process.env.CDN_REFRESH_URL || "https://cdn.arthals.ink/release/";
 const githubRepository =
   process.env.GITHUB_REPOSITORY || "zhuozhiyongde/Treehole-Art";
 
@@ -291,6 +292,12 @@ async function publishGitHubDraft(
 }
 
 async function uploadToCdn(): Promise<void> {
+  if (!refreshUrl.endsWith("/")) {
+    throw new Error(
+      "CDN_REFRESH_URL 必须是以 / 结尾的目录 URL；当前刷新类型为 path",
+    );
+  }
+
   console.log(`[CDN] 获取临时上传凭据`);
   const { Credentials: credentials } = await dogeCloudApi<TemporaryCredentials>(
     "/auth/tmp_token.json",

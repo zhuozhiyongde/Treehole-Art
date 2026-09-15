@@ -48,7 +48,7 @@
 2. 校验产物中的 `@version`、`@downloadURL` 和 `@updateURL`。
 3. 创建或更新 `v<版本号>` GitHub Release 草稿，并上传用户脚本附件。
 4. 向 `CDN_BUCKET_REDACTED/release/Treehole-Art.user.js` 上传产物。
-5. 刷新 `https://cdn.arthals.ink/release/Treehole-Art.user.js` 的 CDN 缓存。
+5. 刷新 `https://cdn.arthals.ink/release/` 目录的 CDN 缓存。
 6. 将 GitHub Release 从草稿发布为正式版本。
 7. 将 `package.json` 的补丁版本加一，作为下一次发布的版本。
 
@@ -68,5 +68,5 @@ bun run release -- --cdn-only
 - `CDN_ENDPOINT` / `CDN_REGION`：S3 兼容端点与地域。
 - `CDN_OBJECT_KEY`：对象存储中的目标路径。
 - `CDN_PUBLIC_URL`：用户安装和自动更新使用的公开地址。
-- `CDN_REFRESH_URL`：发布后提交给多吉云刷新的 URL，默认等于公开地址。
+- `CDN_REFRESH_URL`：发布后提交给多吉云刷新的目录 URL，必须以 `/` 结尾，默认为 `https://cdn.arthals.ink/release/`。
 - `GITHUB_REPOSITORY`：GitHub 仓库的 `owner/name`。
