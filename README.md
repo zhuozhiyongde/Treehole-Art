@@ -72,6 +72,7 @@ Treehole-Art 通过用户脚本安装，支持 Chrome、Edge、Arc 与 Safari。
 ### 安装渠道
 
 - [CDN for JavaScript](https://cdn.arthals.ink/release/Treehole-Art.user.js)：每次发布后自动更新。
+- [GreasyFork](https://greasyfork.org/zh-CN/scripts/595878-treehole-art)：每天同步上述源一次
 
 安装完成后，脚本会通过同一地址自动检查并获取后续更新。
 
