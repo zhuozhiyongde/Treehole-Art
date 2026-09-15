@@ -1,5 +1,6 @@
 import {
     ArrowLeftRegular,
+    Book2Regular,
     BookmarkRegular,
     CheckRegular,
     CloseRegular,
@@ -19,12 +20,13 @@ import {
     SunRegular,
     WindowsRegular,
 } from '@mingcute/react/core-regular';
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { getDeviceUuid, isDemo } from '../api';
 import { IconButton } from '../components/IconButton';
 import { BookmarkDeleteDialog, SideBookmarkMenu } from '../features/bookmarks/BookmarkDialogs';
 import { CommentsPanel } from '../features/comments/CommentsPanel';
 import { Composer } from '../features/composer/Composer';
+import { DocumentationPage } from '../features/docs/DocumentationPage';
 import { EmptyState, LoadingRows } from '../features/feed/FeedStates';
 import { HoleRow } from '../features/feed/HoleRow';
 import { NotificationCenter } from '../features/notifications/NotificationCenter';
@@ -37,12 +39,15 @@ const PKU_LOGO_URL = 'https://cdn.arthals.ink/css/src/PKU.svg';
 export function AppView({ controller }: { controller: AppController }) {
     const {
         mode,
+        docsOpen,
+        setDocsOpen,
         themeMode,
         commentViewMode,
         mobileMenuOpen,
         setMobileMenuOpen,
         queryInput,
         setQueryInput,
+        recentSearches,
         activeQuery,
         selectedLabel,
         setSelectedLabel,
@@ -86,7 +91,10 @@ export function AppView({ controller }: { controller: AppController }) {
         highlightTerms,
         switchMode,
         goHome,
+        openDocumentation,
         submitSearch,
+        selectRecentSearch,
+        clearRecentSearches,
         clearSearch,
         cycleTheme,
         toggleCommentView,
@@ -111,6 +119,7 @@ export function AppView({ controller }: { controller: AppController }) {
         isSearching,
         currentDetailHole,
     } = controller;
+    const [searchHistoryOpen, setSearchHistoryOpen] = useState(false);
 
     const themeIcon =
         themeMode === 'light' ? (
@@ -132,7 +141,7 @@ export function AppView({ controller }: { controller: AppController }) {
                 </div>
                 <SideBookmarkMenu
                     groups={bookmarkGroups}
-                    active={mode === 'bookmarks'}
+                    active={!docsOpen && mode === 'bookmarks'}
                     selectedId={selectedBookmark}
                     onSelect={(id) => switchMode('bookmarks', id)}
                     onCreate={createEmptyBookmark}
@@ -150,6 +159,7 @@ export function AppView({ controller }: { controller: AppController }) {
                     value={selectedLabel}
                     placement={tagMenuPlacement}
                     onChange={(value) => {
+                        setDocsOpen(false);
                         setSelectedLabel(value);
                         setMobileMenuOpen(false);
                     }}
@@ -202,26 +212,21 @@ export function AppView({ controller }: { controller: AppController }) {
                 <nav aria-label="主导航">
                     <button
                         type="button"
-                        className={mode === 'latest' ? 'active' : ''}
+                        className={!docsOpen && mode === 'latest' ? 'active' : ''}
                         onClick={() => switchMode('latest')}>
                         <Home4Regular size={19} />
                         <span>最新</span>
                     </button>
                     <button
                         type="button"
-                        className={mode === 'bookmarks' ? 'active' : ''}
+                        className={!docsOpen && mode === 'bookmarks' ? 'active' : ''}
                         onClick={() => switchMode('bookmarks')}>
                         <BookmarkRegular size={19} />
                         <span>收藏</span>
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setNotificationsOpen(true);
-                            setMobileMenuOpen(false);
-                        }}>
-                        <NotificationRegular size={19} />
-                        <span>消息{unreadNotifications > 0 ? `（${unreadNotifications}）` : ''}</span>
+                    <button type="button" className={docsOpen ? 'active' : ''} onClick={openDocumentation}>
+                        <Book2Regular size={19} />
+                        <span>文档</span>
                     </button>
                 </nav>
                 <div className="rail-context-tools" aria-label="内容管理">
@@ -251,15 +256,29 @@ export function AppView({ controller }: { controller: AppController }) {
                         }}>
                         {mobileMenuOpen ? <CloseRegular size={20} /> : <MenuRegular size={20} />}
                     </IconButton>
-                    <form className="search-box" onSubmit={submitSearch}>
+                    <form
+                        className="search-box"
+                        onSubmit={(event) => {
+                            submitSearch(event);
+                            setSearchHistoryOpen(false);
+                        }}
+                        onFocus={() => setSearchHistoryOpen(true)}
+                        onBlur={(event) => {
+                            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                                setSearchHistoryOpen(false);
+                            }
+                        }}>
                         <Search2Regular size={18} />
                         <input
                             ref={searchRef}
                             value={queryInput}
                             onChange={(event) => setQueryInput(event.target.value)}
-                            placeholder="搜索内容或 #洞号，-: 排除关键字"
+                            onClick={() => setSearchHistoryOpen(true)}
+                            placeholder="搜索内容或 #洞号，| 或搜索"
                             aria-label="搜索树洞"
-                            title="使用 -:关键字 排除包含该词的结果"
+                            aria-expanded={searchHistoryOpen && recentSearches.length > 0}
+                            aria-controls="recent-searches"
+                            title="使用 | 分隔或搜索，使用 -:关键字 排除包含该词的结果"
                         />
                         {queryInput && (
                             <IconButton label="清空搜索" className="search-clear" onClick={clearSearch}>
@@ -269,6 +288,31 @@ export function AppView({ controller }: { controller: AppController }) {
                         <button type="submit" className="search-submit">
                             搜索
                         </button>
+                        {searchHistoryOpen && recentSearches.length > 0 && (
+                            <div id="recent-searches" className="search-history" aria-label="最近搜索">
+                                <div className="search-history-heading">
+                                    <span>最近搜索</span>
+                                    <button type="button" onClick={clearRecentSearches}>
+                                        清除
+                                    </button>
+                                </div>
+                                <div className="search-history-list">
+                                    {recentSearches.map((query) => (
+                                        <button
+                                            type="button"
+                                            key={query}
+                                            title={query}
+                                            onClick={() => {
+                                                selectRecentSearch(query);
+                                                setSearchHistoryOpen(false);
+                                            }}>
+                                            <Search2Regular size={14} />
+                                            <span>{query}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </form>
                     <div className="topbar-actions">
                         <IconButton
@@ -296,14 +340,18 @@ export function AppView({ controller }: { controller: AppController }) {
                     </div>
                 </header>
 
-                <Composer
-                    tags={tags}
-                    identities={postingIdentities}
-                    onPublished={handlePublished}
-                    onNotice={setToast}
-                />
+                {docsOpen ? (
+                    <DocumentationPage />
+                ) : (
+                    <>
+                        <Composer
+                            tags={tags}
+                            identities={postingIdentities}
+                            onPublished={handlePublished}
+                            onNotice={setToast}
+                        />
 
-                <div className="feed-heading">
+                        <div className="feed-heading">
                     <div>
                         <h1>{mode === 'latest' ? '最新树洞' : '我的收藏'}</h1>
                         <span>{candidateTotal ? `${candidateTotal} 条内容` : '实时更新'}</span>
@@ -318,14 +366,20 @@ export function AppView({ controller }: { controller: AppController }) {
                         ariaLabel="筛选标签"
                         className="feed-tag-picker"
                     />
-                </div>
+                        </div>
 
-                {activeQuery.hasAdvanced && (
+                        {activeQuery.hasAdvanced && (
                     <div className="query-summary" role="status">
                         <div className="query-chips">
-                            {activeQuery.baseQuery && (
+                            {activeQuery.orQueries.length === 1 && (
                                 <span className="query-chip neutral">搜索 · {activeQuery.baseQuery}</span>
                             )}
+                            {activeQuery.orQueries.length > 1 &&
+                                activeQuery.orQueries.map((term) => (
+                                    <span className="query-chip neutral" key={`o-${term}`}>
+                                        或 · {term}
+                                    </span>
+                                ))}
                             {activeQuery.includes.map((term) => (
                                 <span className="query-chip include" key={`i-${term}`}>
                                     + {term}
@@ -333,7 +387,7 @@ export function AppView({ controller }: { controller: AppController }) {
                             ))}
                             {activeQuery.excludes.map((term) => (
                                 <span className="query-chip exclude" key={`e-${term}`}>
-                                    - {term}
+                                    排除 · {term}
                                 </span>
                             ))}
                         </div>
@@ -341,9 +395,9 @@ export function AppView({ controller }: { controller: AppController }) {
                             {visibleHoles.length}/{holes.length} 匹配
                         </span>
                     </div>
-                )}
+                        )}
 
-                <section className="feed" aria-live="polite">
+                        <section className="feed" aria-live="polite">
                     {loading ? (
                         <LoadingRows />
                     ) : feedError && !holes.length ? (
@@ -442,7 +496,9 @@ export function AppView({ controller }: { controller: AppController }) {
                             )}
                         </>
                     )}
-                </section>
+                        </section>
+                    </>
+                )}
             </main>
 
             <aside className="right-rail">{renderSideTools('left')}</aside>
@@ -450,17 +506,21 @@ export function AppView({ controller }: { controller: AppController }) {
             <nav className="mobile-nav" aria-label="移动端导航">
                 <button
                     type="button"
-                    className={mode === 'latest' ? 'active' : ''}
+                    className={!docsOpen && mode === 'latest' ? 'active' : ''}
                     onClick={() => switchMode('latest')}>
                     <Home4Regular size={20} />
                     <span>最新</span>
                 </button>
                 <button
                     type="button"
-                    className={mode === 'bookmarks' ? 'active' : ''}
+                    className={!docsOpen && mode === 'bookmarks' ? 'active' : ''}
                     onClick={() => switchMode('bookmarks')}>
                     <BookmarkRegular size={20} />
                     <span>收藏</span>
+                </button>
+                <button type="button" className={docsOpen ? 'active' : ''} onClick={openDocumentation}>
+                    <Book2Regular size={20} />
+                    <span>文档</span>
                 </button>
             </nav>
 

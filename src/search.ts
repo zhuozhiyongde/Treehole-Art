@@ -2,11 +2,13 @@ export interface ParsedQuery {
   source: string;
   hasAdvanced: boolean;
   baseQuery: string;
+  orQueries: string[];
   includes: string[];
   excludes: string[];
   normalizedIncludes: string[];
   normalizedExcludes: string[];
   backendQuery: string;
+  backendQueries: string[];
   pid?: number;
 }
 
@@ -51,14 +53,25 @@ export function parseQuery(source: string): ParsedQuery {
   }
 
   baseParts.push(input.slice(lastIndex));
-  const baseQuery = baseParts.join(" ").replace(/\s+/g, " ").trim();
+  const orQueries = uniqueTerms(
+    baseParts
+      .join(" ")
+      .split("|")
+      .map((part) => part.replace(/\s+/g, " ").trim())
+      .filter(Boolean),
+  );
+  const baseQuery = orQueries.join(" | ");
   const excludedTerms = uniqueTerms(excludes);
-  const directPid = baseQuery.match(/^#?(\d+)$/);
+  const directPid = orQueries.length === 1 ? orQueries[0].match(/^#?(\d+)$/) : null;
+  const backendQueries = orQueries.length
+    ? orQueries.map((query) => query.match(/^#?(\d+)$/)?.[1] ?? query)
+    : [""];
 
   return {
     source: input,
-    hasAdvanced: foundOperator,
+    hasAdvanced: foundOperator || orQueries.length > 1,
     baseQuery,
+    orQueries,
     includes: [],
     excludes: excludedTerms,
     normalizedIncludes: [],
@@ -66,7 +79,8 @@ export function parseQuery(source: string): ParsedQuery {
     // A typed PID remains a keyword search so the API can return both the
     // original hole and holes that reference it. Exact navigation is handled
     // separately by the UI.
-    backendQuery: directPid ? directPid[1] : baseQuery,
+    backendQuery: backendQueries[0],
+    backendQueries,
     pid: directPid ? Number(directPid[1]) : undefined,
   };
 }

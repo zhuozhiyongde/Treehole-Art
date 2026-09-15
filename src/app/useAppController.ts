@@ -32,6 +32,21 @@ import type {
 } from '../types';
 
 const PAGE_SIZE = 8;
+const SEARCH_HISTORY_KEY = 'treehole-art-search-history';
+const SEARCH_HISTORY_LIMIT = 8;
+
+function loadSearchHistory() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) ?? '[]');
+        return Array.isArray(stored)
+            ? stored
+                  .filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+                  .slice(0, SEARCH_HISTORY_LIMIT)
+            : [];
+    } catch {
+        return [];
+    }
+}
 
 export function useAppController() {
     const [mode, setMode] = useState<FeedMode>('latest');
@@ -43,8 +58,10 @@ export function useAppController() {
         localStorage.getItem('treehole-art-comment-view') === 'inline' ? 'inline' : 'modal',
     );
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [docsOpen, setDocsOpen] = useState(false);
     const [queryInput, setQueryInput] = useState('');
     const [activeQuery, setActiveQuery] = useState<ParsedQuery>(() => parseQuery(''));
+    const [recentSearches, setRecentSearches] = useState<string[]>(loadSearchHistory);
     const [selectedLabel, setSelectedLabel] = useState<number | undefined>();
     const [selectedBookmark, setSelectedBookmark] = useState<number | undefined>();
     const [tags, setTags] = useState<TagNode[]>([]);
@@ -109,6 +126,10 @@ export function useAppController() {
     }, [commentViewMode]);
 
     useEffect(() => {
+        localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(recentSearches));
+    }, [recentSearches]);
+
+    useEffect(() => {
         if (!detailStack.length) return;
         document.body.classList.add('drawer-open');
         const close = (event: KeyboardEvent) => {
@@ -152,6 +173,36 @@ export function useAppController() {
         return () => document.removeEventListener('keydown', onKeyDown);
     }, []);
 
+    const fetchActiveFeedPage = useCallback(
+        async (targetPage: number, signal: AbortSignal) => {
+            const results = await Promise.all(
+                activeQuery.backendQueries.map((keyword) =>
+                    fetchFeed({
+                        mode,
+                        page: targetPage,
+                        limit: PAGE_SIZE,
+                        keyword,
+                        label: selectedLabel,
+                        bookmarkId: selectedBookmark,
+                        signal,
+                    }),
+                ),
+            );
+            const itemsByPid = new Map<number, Hole>();
+            for (const result of results) {
+                for (const hole of result.items) itemsByPid.set(hole.pid, hole);
+            }
+            return {
+                items: [...itemsByPid.values()].sort(
+                    (left, right) => Number(right.timestamp) - Number(left.timestamp),
+                ),
+                total: results.reduce((total, result) => total + result.total, 0),
+                lastPage: Math.max(...results.map((result) => result.lastPage)),
+            };
+        },
+        [activeQuery.backendQueries, mode, selectedBookmark, selectedLabel],
+    );
+
     const loadFirstPage = useCallback(async () => {
         feedController.current?.abort();
         const controller = new AbortController();
@@ -160,15 +211,7 @@ export function useAppController() {
         setFeedError('');
         setBookmarkMenuPid(null);
         try {
-            const result = await fetchFeed({
-                mode,
-                page: 1,
-                limit: PAGE_SIZE,
-                keyword: activeQuery.backendQuery,
-                label: selectedLabel,
-                bookmarkId: selectedBookmark,
-                signal: controller.signal,
-            });
+            const result = await fetchActiveFeedPage(1, controller.signal);
             setHoles(result.items);
             setCandidateTotal(result.total);
             setLastPage(result.lastPage);
@@ -180,7 +223,7 @@ export function useAppController() {
         } finally {
             if (!controller.signal.aborted) setLoading(false);
         }
-    }, [activeQuery, mode, selectedBookmark, selectedLabel]);
+    }, [fetchActiveFeedPage]);
 
     useEffect(() => {
         void loadFirstPage();
@@ -199,11 +242,12 @@ export function useAppController() {
     }, [activeQuery, holes]);
 
     const highlightTerms = useMemo(() => {
-        const baseTerms = activeQuery.baseQuery.replace(/^#(?=\d+$)/, '').split(/\s+/);
+        const baseTerms = activeQuery.orQueries.flatMap((query) => query.replace(/^#(?=\d+$)/, '').split(/\s+/));
         return [...new Set([...baseTerms, ...activeQuery.includes].filter(Boolean))];
     }, [activeQuery]);
 
     const switchMode = (nextMode: FeedMode, bookmarkId?: number) => {
+        setDocsOpen(false);
         setMode(nextMode);
         setSelectedBookmark(bookmarkId);
         setSelectedLabel(undefined);
@@ -222,16 +266,48 @@ export function useAppController() {
         setRefreshKey((key) => key + 1);
     };
 
-    const submitSearch = (event: FormEvent) => {
-        event.preventDefault();
-        setActiveQuery(parseQuery(queryInput.trim()));
+    const openDocumentation = () => {
+        setDocsOpen(true);
+        setSelectedHole(null);
+        setDetailStack([]);
+        setExpandedCommentPids(new Set());
+        setBookmarkMenuPid(null);
+        setCopyMenuPid(null);
+        setMobileMenuOpen(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const activateSearch = (source: string) => {
+        const normalizedSource = source.trim();
+        setDocsOpen(false);
+        setActiveQuery(parseQuery(normalizedSource));
         setSelectedHole(null);
         setDetailStack([]);
         setExpandedCommentPids(new Set());
         setCopyMenuPid(null);
         setSelectedBookmark(undefined);
+        if (normalizedSource) {
+            setRecentSearches((current) =>
+                [normalizedSource, ...current.filter((item) => item !== normalizedSource)].slice(
+                    0,
+                    SEARCH_HISTORY_LIMIT,
+                ),
+            );
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
+    const submitSearch = (event: FormEvent) => {
+        event.preventDefault();
+        activateSearch(queryInput);
+    };
+
+    const selectRecentSearch = (source: string) => {
+        setQueryInput(source);
+        activateSearch(source);
+    };
+
+    const clearRecentSearches = () => setRecentSearches([]);
 
     const clearSearch = () => {
         setQueryInput('');
@@ -352,18 +428,12 @@ export function useAppController() {
         setFeedError('');
         const nextPage = page + 1;
         try {
-            const result = await fetchFeed({
-                mode,
-                page: nextPage,
-                limit: PAGE_SIZE,
-                keyword: activeQuery.backendQuery,
-                label: selectedLabel,
-                bookmarkId: selectedBookmark,
-                signal: controller.signal,
-            });
+            const result = await fetchActiveFeedPage(nextPage, controller.signal);
             setHoles((current) => {
                 const known = new Set(current.map((hole) => hole.pid));
-                return [...current, ...result.items.filter((hole) => !known.has(hole.pid))];
+                return [...current, ...result.items.filter((hole) => !known.has(hole.pid))].sort(
+                    (left, right) => Number(right.timestamp) - Number(left.timestamp),
+                );
             });
             setPage(nextPage);
             setLastPage(result.lastPage);
@@ -647,12 +717,15 @@ export function useAppController() {
 
     return {
         mode,
+        docsOpen,
+        setDocsOpen,
         themeMode,
         commentViewMode,
         mobileMenuOpen,
         setMobileMenuOpen,
         queryInput,
         setQueryInput,
+        recentSearches,
         activeQuery,
         selectedLabel,
         setSelectedLabel,
@@ -696,7 +769,10 @@ export function useAppController() {
         highlightTerms,
         switchMode,
         goHome,
+        openDocumentation,
         submitSearch,
+        selectRecentSearch,
+        clearRecentSearches,
         clearSearch,
         cycleTheme,
         toggleCommentView,
@@ -724,4 +800,3 @@ export function useAppController() {
 }
 
 export type AppController = ReturnType<typeof useAppController>;
-
