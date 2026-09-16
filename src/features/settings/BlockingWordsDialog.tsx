@@ -2,28 +2,33 @@ import { CloseRegular, Delete2Regular, Loading3Regular } from '@mingcute/react/c
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { IconButton } from '../../components/IconButton';
+import type { BlockingWordMode } from '../../types';
 
 export function BlockingWordsDialog({
     open,
     words,
+    mode,
     busy,
     onClose,
     onSave,
 }: {
     open: boolean;
     words: string[];
+    mode: BlockingWordMode;
     busy: boolean;
     onClose: () => void;
-    onSave: (words: string[]) => void;
+    onSave: (words: string[], mode: BlockingWordMode) => void;
 }) {
     const [draft, setDraft] = useState<string[]>([]);
+    const [draftMode, setDraftMode] = useState<BlockingWordMode>('collapse');
     const [input, setInput] = useState('');
 
     useEffect(() => {
         if (!open) return;
         setDraft(words);
+        setDraftMode(mode);
         setInput('');
-    }, [open, words]);
+    }, [mode, open, words]);
 
     useEffect(() => {
         if (!open) return;
@@ -56,13 +61,45 @@ export function BlockingWordsDialog({
                 <header>
                     <div>
                         <h2 id="blocking-words-title">屏蔽词</h2>
-                        <span>包含屏蔽词的主贴内容将默认折叠</span>
+                        <span>管理关键词和匹配内容的展示方式</span>
                     </div>
                     <IconButton label="关闭屏蔽词设置" onClick={onClose}>
                         <CloseRegular size={19} />
                     </IconButton>
                 </header>
                 <div className="settings-content">
+                    <fieldset className="blocking-mode-setting">
+                        <legend>匹配内容</legend>
+                        <p>选择包含屏蔽词的树洞如何出现在信息流中。</p>
+                        <div className="blocking-mode-options">
+                            <label className={draftMode === 'collapse' ? 'active' : ''}>
+                                <input
+                                    type="radio"
+                                    name="blocking-word-mode"
+                                    value="collapse"
+                                    checked={draftMode === 'collapse'}
+                                    onChange={() => setDraftMode('collapse')}
+                                />
+                                <span>
+                                    <strong>折叠显示</strong>
+                                    <small>显示提示，并允许手动展开原文</small>
+                                </span>
+                            </label>
+                            <label className={draftMode === 'hide' ? 'active' : ''}>
+                                <input
+                                    type="radio"
+                                    name="blocking-word-mode"
+                                    value="hide"
+                                    checked={draftMode === 'hide'}
+                                    onChange={() => setDraftMode('hide')}
+                                />
+                                <span>
+                                    <strong>彻底隐藏</strong>
+                                    <small>匹配的树洞不会出现在信息流中</small>
+                                </span>
+                            </label>
+                        </div>
+                    </fieldset>
                     <form className="blocking-word-form" onSubmit={addWord}>
                         <input
                             value={input}
@@ -94,7 +131,11 @@ export function BlockingWordsDialog({
                     <button type="button" className="secondary-button" onClick={onClose}>
                         取消
                     </button>
-                    <button type="button" className="primary-button" disabled={busy} onClick={() => onSave(draft)}>
+                    <button
+                        type="button"
+                        className="primary-button"
+                        disabled={busy}
+                        onClick={() => onSave(draft, draftMode)}>
                         {busy && <Loading3Regular className="spin" size={15} />}
                         保存
                     </button>
@@ -103,4 +144,3 @@ export function BlockingWordsDialog({
         </div>
     );
 }
-

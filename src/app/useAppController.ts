@@ -22,6 +22,7 @@ import { displayText } from '../normalize';
 import { matchesAdvancedQuery, parseQuery, type ParsedQuery } from '../search';
 import type {
     BookmarkGroup,
+    BlockingWordMode,
     CommentViewMode,
     FeedMode,
     Hole,
@@ -34,6 +35,12 @@ import type {
 const PAGE_SIZE = 8;
 const SEARCH_HISTORY_KEY = 'treehole-art-search-history';
 const SEARCH_HISTORY_LIMIT = 8;
+const BLOCKING_WORD_MODE_KEY = 'treehole-art-blocking-word-mode';
+
+function containsBlockingWord(hole: Hole, words: string[]) {
+    const text = displayText(hole.text);
+    return words.some((word) => text.includes(word));
+}
 
 function loadSearchHistory() {
     try {
@@ -67,6 +74,9 @@ export function useAppController() {
     const [tags, setTags] = useState<TagNode[]>([]);
     const [bookmarkGroups, setBookmarkGroups] = useState<BookmarkGroup[]>([]);
     const [blockingWords, setBlockingWords] = useState<string[]>([]);
+    const [blockingWordMode, setBlockingWordMode] = useState<BlockingWordMode>(() =>
+        localStorage.getItem(BLOCKING_WORD_MODE_KEY) === 'hide' ? 'hide' : 'collapse',
+    );
     const [postingIdentities, setPostingIdentities] = useState<PostingIdentity[]>([]);
     const [holes, setHoles] = useState<Hole[]>([]);
     const [page, setPage] = useState(1);
@@ -128,6 +138,18 @@ export function useAppController() {
     useEffect(() => {
         localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(recentSearches));
     }, [recentSearches]);
+
+    useEffect(() => {
+        localStorage.setItem(BLOCKING_WORD_MODE_KEY, blockingWordMode);
+    }, [blockingWordMode]);
+
+    useEffect(() => {
+        if (blockingWordMode !== 'hide' || !blockingWords.length) return;
+        setSelectedHole((current) => (current && containsBlockingWord(current, blockingWords) ? null : current));
+        setDetailStack((current) =>
+            current.some((hole) => containsBlockingWord(hole, blockingWords)) ? [] : current,
+        );
+    }, [blockingWordMode, blockingWords]);
 
     useEffect(() => {
         if (!detailStack.length) return;
@@ -237,9 +259,12 @@ export function useAppController() {
     }, [toast]);
 
     const visibleHoles = useMemo(() => {
-        if (!activeQuery.hasAdvanced) return holes;
-        return holes.filter((hole) => matchesAdvancedQuery(hole.text, activeQuery));
-    }, [activeQuery, holes]);
+        const matchingHoles = activeQuery.hasAdvanced
+            ? holes.filter((hole) => matchesAdvancedQuery(hole.text, activeQuery))
+            : holes;
+        if (blockingWordMode !== 'hide' || !blockingWords.length) return matchingHoles;
+        return matchingHoles.filter((hole) => !containsBlockingWord(hole, blockingWords));
+    }, [activeQuery, blockingWordMode, blockingWords, holes]);
 
     const highlightTerms = useMemo(() => {
         const baseTerms = activeQuery.orQueries.flatMap((query) => query.replace(/^#(?=\d+$)/, '').split(/\s+/));
@@ -688,13 +713,15 @@ export function useAppController() {
         }
     };
 
-    const saveBlockingWords = async (words: string[]) => {
+    const saveBlockingWords = async (words: string[], nextMode: BlockingWordMode) => {
         setBlockingWordsBusy(true);
         try {
-            await updateBlockingWords(words);
-            setBlockingWords([...new Set(words.map((word) => word.trim()).filter(Boolean))]);
+            const normalizedWords = [...new Set(words.map((word) => word.trim()).filter(Boolean))];
+            await updateBlockingWords(normalizedWords);
+            setBlockingWords(normalizedWords);
+            setBlockingWordMode(nextMode);
             setBlockingWordsOpen(false);
-            setToast('屏蔽词已更新');
+            setToast(nextMode === 'hide' ? '屏蔽词已更新，将彻底隐藏匹配内容' : '屏蔽词已更新，将折叠匹配内容');
         } catch (nextError) {
             setToast(nextError instanceof Error ? nextError.message : '屏蔽词更新失败');
         } finally {
@@ -733,6 +760,7 @@ export function useAppController() {
         tags,
         bookmarkGroups,
         blockingWords,
+        blockingWordMode,
         postingIdentities,
         holes,
         page,

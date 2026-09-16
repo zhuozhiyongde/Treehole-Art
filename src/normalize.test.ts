@@ -25,6 +25,24 @@ describe("normalizeComment", () => {
     const quote = { name_tag: "Alice", text: "被引用内容" };
     expect(normalizeComment({ ...baseComment, quote }).quote).toEqual(quote);
   });
+
+  it("normalizes the accepted-answer flag returned by the API", () => {
+    const comment = normalizeComment({
+      ...baseComment,
+      reward_good: "1" as unknown as TreeholeComment["reward_good"],
+    });
+
+    expect(comment.reward_good).toBe(1);
+  });
+
+  it("normalizes the hole-owner flag used by bounty actions", () => {
+    const comment = normalizeComment({
+      ...baseComment,
+      is_lz: "0" as unknown as TreeholeComment["is_lz"],
+    });
+
+    expect(comment.is_lz).toBe(0);
+  });
 });
 
 describe("displayText", () => {

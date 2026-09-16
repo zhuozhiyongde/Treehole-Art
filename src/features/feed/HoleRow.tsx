@@ -1,4 +1,5 @@
 import {
+    AwardRegular,
     BookmarkRegular,
     Copy2Regular,
     DownSmallRegular,
@@ -14,7 +15,7 @@ import { ExpandableRichText } from '../../components/RichText';
 import { MediaImages, PostImage } from '../../components/MediaImages';
 import { displayText } from '../../normalize';
 import { formatTime, fullTime } from '../../lib/presentation';
-import type { BookmarkGroup, Hole } from '../../types';
+import type { BlockingWordMode, BookmarkGroup, Hole } from '../../types';
 import { BookmarkMenu } from '../bookmarks/BookmarkMenu';
 import { QuotedHole } from './QuotedHole';
 
@@ -51,6 +52,7 @@ export function HoleRow({
     onOpenReferencedHole,
     highlightTerms,
     blockingWords,
+    blockingWordMode,
 }: {
     hole: Hole;
     bookmarkOpen: boolean;
@@ -70,6 +72,7 @@ export function HoleRow({
     onOpenReferencedHole: (pid: number) => void;
     highlightTerms: string[];
     blockingWords: string[];
+    blockingWordMode: BlockingWordMode;
 }) {
     const blockedWord = blockingWords.find((word) => displayText(hole.text).includes(word));
     const [showBlockedContent, setShowBlockedContent] = useState(false);
@@ -84,10 +87,23 @@ export function HoleRow({
     const tone = tagTone(hole.label_info?.id ?? hole.pid);
     const referencedPid = referencedPidFor(hole);
     const praiseCount = hole.praise_num_show ?? hole.praise_num ?? 0;
+    const isBounty = Number(hole.kind) === 1;
+    const rewardCost = Number(hole.reward_cost);
+    const hasRewardCost = Number.isFinite(rewardCost) && rewardCost > 0;
+    const bountyResolved = Number(hole.has_reward_good) === 1;
+
+    if (blockedWord && blockingWordMode === 'hide') return null;
 
     return (
-        <article className="hole-row" onClick={onOpenComments}>
+        <article
+            className={`hole-row ${isBounty ? 'is-bounty' : ''} ${bountyResolved ? 'is-bounty-resolved' : ''}`}
+            onClick={onOpenComments}>
             <div className="hole-meta">
+                {isBounty && (
+                    <span className={`badge bounty-status-badge ${bountyResolved ? 'is-resolved' : ''}`}>
+                        {bountyResolved ? '悬赏已完成' : '悬赏征集中'}
+                    </span>
+                )}
                 <button
                     type="button"
                     className="pid"
@@ -104,6 +120,17 @@ export function HoleRow({
                 {tag && <span className={`badge tag-badge ${tone}`}>{tag}</span>}
             </div>
             <IdentityBadges item={hole} />
+            {isBounty && (
+                <div className="bounty-summary">
+                    <AwardRegular size={18} />
+                    <span>
+                        <strong>{bountyResolved ? '悬赏已完成' : '悬赏征集中'}</strong>
+                        <small>
+                            {hasRewardCost ? `最佳答案奖励 ${rewardCost} 树叶` : '采纳最佳答案后发放奖励'}
+                        </small>
+                    </span>
+                </div>
+            )}
             {blockedWord && !showBlockedContent ? (
                 <div className="blocked-content" onClick={(event) => event.stopPropagation()}>
                     <ShieldRegular size={18} />
@@ -135,6 +162,7 @@ export function HoleRow({
                             onPid={onOpenReferencedHole}
                             highlightTerms={highlightTerms}
                             blockingWords={blockingWords}
+                            blockingWordMode={blockingWordMode}
                             onCopyPid={onCopyPid}
                         />
                     )}
@@ -233,4 +261,3 @@ export function HoleRow({
         </article>
     );
 }
-

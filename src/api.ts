@@ -1,4 +1,4 @@
-import { addMockComment, commentsForHole, mockBookmarks, mockHoles, mockTags } from './mock';
+import { addMockComment, commentsForHole, mockBookmarks, mockHoles, mockTags, setMockBestAnswer } from './mock';
 import { normalizeComment, resolveCommentTotal } from './normalize';
 import type {
     BookmarkGroup,
@@ -148,6 +148,11 @@ function normalizeHole(hole: Hole): Hole {
             : undefined);
     return {
         ...hole,
+        kind: hole.kind === undefined ? undefined : Number(hole.kind),
+        reward_cost: hole.reward_cost === undefined ? undefined : Number(hole.reward_cost),
+        has_reward_good:
+            hole.has_reward_good === undefined ? undefined : Number(hole.has_reward_good) === 1 ? 1 : 0,
+        islz: hole.islz === undefined ? undefined : Number(hole.islz) === 1 ? 1 : 0,
         bookmark,
     };
 }
@@ -171,6 +176,7 @@ export async function fetchFeed(options: FeedRequest): Promise<PageResult<Hole>>
         await waitForDemo(options.signal);
         let items = [...mockHoles];
         if (options.mode === 'bookmarks') items = items.filter((hole) => hole.is_follow);
+        if (options.mode === 'bounty') items = items.filter((hole) => hole.kind === 1);
         if (options.bookmarkId) {
             items = items.filter((hole) => hole.bookmark?.bookmark?.id === options.bookmarkId);
         }
@@ -212,6 +218,7 @@ export async function fetchFeed(options: FeedRequest): Promise<PageResult<Hole>>
         query.set('bookmark_id', String(options.bookmarkId));
     }
     if (options.mode === 'bookmarks') query.set('is_follow', '1');
+    if (options.mode === 'bounty') query.set('kind', '1');
     const payload = await chapiRequest<ApiPage<Hole>>(`/api/v3/hole/list_comments?${query}`, {
         signal: options.signal,
     });
@@ -524,13 +531,21 @@ export async function publishHole(
     label?: number,
     image?: File,
     identity: PublishIdentityOptions = { identityTypes: [] },
+    rewardCost?: number,
 ): Promise<Hole> {
+    if (rewardCost !== undefined && (!Number.isSafeInteger(rewardCost) || rewardCost < 1)) {
+        throw new Error('悬赏树叶数必须是正整数');
+    }
     if (isDemo) {
         await waitForDemo();
         const hole: Hole = {
             pid: Math.floor(40000000 + Math.random() * 9000000),
             text,
             type: image ? 'image' : 'text',
+            kind: rewardCost === undefined ? 0 : 1,
+            reward_cost: rewardCost,
+            has_reward_good: rewardCost === undefined ? undefined : 0,
+            islz: 1,
             timestamp: Math.floor(Date.now() / 1000),
             likenum: 0,
             reply: 0,
@@ -558,26 +573,39 @@ export async function publishHole(
 
     const mediaId = image ? await uploadMediaImage(image) : undefined;
     const payload = {
-        kind: 0,
+        kind: rewardCost === undefined ? 0 : 1,
         type: image ? 'image' : 'text',
         text,
         tags_ids: label ? String(label) : '',
         media_ids: mediaId ? String(mediaId) : '',
         identity_show: identity.identityTypes.length ? 1 : 0,
         identity_type: identity.identityTypes.join(','),
+        ...(rewardCost === undefined ? {} : { reward_cost: rewardCost }),
         ...(identity.exclusiveId ? { exclusive_id_id: identity.exclusiveId } : {}),
     };
     const created = await chapiRequest<number | Hole>('/api/v3/hole/post', {
         method: 'POST',
         body: JSON.stringify(payload),
     });
-    if (typeof created === 'object' && created?.pid) return created;
+    if (typeof created === 'object' && created?.pid) {
+        return normalizeHole({
+            ...created,
+            kind: created.kind ?? (rewardCost === undefined ? 0 : 1),
+            reward_cost: created.reward_cost ?? rewardCost,
+            has_reward_good: created.has_reward_good ?? (rewardCost === undefined ? undefined : 0),
+            islz: created.islz ?? 1,
+        });
+    }
     const pid = Number(created);
     if (!Number.isSafeInteger(pid) || pid <= 0) throw new Error('发布成功，但未取得洞号');
     return {
         pid,
         text,
         type: image ? 'image' : 'text',
+        kind: rewardCost === undefined ? 0 : 1,
+        reward_cost: rewardCost,
+        has_reward_good: rewardCost === undefined ? undefined : 0,
+        islz: 1,
         timestamp: Math.floor(Date.now() / 1000),
         likenum: 0,
         praise_num: 0,
@@ -590,6 +618,18 @@ export async function publishHole(
         exclusive_id_id: identity.exclusiveId,
         exclusive_id_info: identity.exclusiveId ? { exclusive_id: identity.exclusiveName } : undefined,
     };
+}
+
+export async function setBestAnswer(cid: number): Promise<void> {
+    if (isDemo) {
+        await waitForDemo();
+        if (!setMockBestAnswer(cid)) throw new Error('没有找到这条评论');
+        return;
+    }
+    await chapiRequest<unknown>('/api/v3/comment/good', {
+        method: 'POST',
+        body: JSON.stringify({ cid }),
+    });
 }
 
 export async function publishComment(
@@ -609,6 +649,7 @@ export async function publishComment(
             name: 'You',
             timestamp: Math.floor(Date.now() / 1000),
             likenum: 0,
+            is_lz: mockHoles.find((hole) => hole.pid === pid)?.islz === 1 ? 1 : 0,
             quote: replyTo ? { name_tag: replyTo.name || '洞友', text: replyTo.text } : undefined,
             media_ids: mediaId ? String(mediaId) : undefined,
             exclusive_id_id: identity.exclusiveId,
@@ -700,7 +741,7 @@ export async function prepareUploadImage(file: File, maxBytes = 716800): Promise
     return new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
 }
 
-export async function fetchCommentImage(mediaId: number, signal?: AbortSignal) {
+export async function fetchCommentImage(mediaId: number, signal?: AbortSignal, original = false) {
     if (isDemo) {
         const file = mockMediaFiles.get(mediaId);
         return file ? URL.createObjectURL(file) : '';
@@ -710,7 +751,8 @@ export async function fetchCommentImage(mediaId: number, signal?: AbortSignal) {
     if (token) headers.set('Authorization', `Bearer ${token}`);
     headers.set('Uuid', getDeviceUuid());
     headers.set('userAgent', 'pku_web');
-    const response = await fetch(`/chapi/api/v3/media/getThumbnail?id=${mediaId}`, {
+    const endpoint = original ? 'getMediaBinary' : 'getThumbnail';
+    const response = await fetch(`/chapi/api/v3/media/${endpoint}?id=${mediaId}`, {
         headers,
         credentials: 'same-origin',
         signal,

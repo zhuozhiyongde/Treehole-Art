@@ -1,4 +1,11 @@
-import { Delete2Regular, HashtagRegular, Loading3Regular, PicRegular, SendRegular } from '@mingcute/react/core-regular';
+import {
+    CoinRegular,
+    Delete2Regular,
+    HashtagRegular,
+    Loading3Regular,
+    PicRegular,
+    SendRegular,
+} from '@mingcute/react/core-regular';
 import type { FormEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { prepareUploadImage, publishHole } from '../../api';
@@ -23,6 +30,8 @@ export function Composer({
     const [image, setImage] = useState<File | undefined>();
     const [exclusiveId, setExclusiveId] = useState<number | undefined>();
     const [identityTypes, setIdentityTypes] = useState<number[]>([]);
+    const [bountyEnabled, setBountyEnabled] = useState(false);
+    const [rewardCostInput, setRewardCostInput] = useState('1');
     const [busy, setBusy] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const previewUrl = useMemo(() => (image ? URL.createObjectURL(image) : ''), [image]);
@@ -38,6 +47,11 @@ export function Composer({
         event.preventDefault();
         const trimmed = text.trim();
         if ((!trimmed && !image) || busy) return;
+        const rewardCost = bountyEnabled ? Number(rewardCostInput) : undefined;
+        if (bountyEnabled && (!Number.isSafeInteger(rewardCost) || (rewardCost ?? 0) < 1)) {
+            onNotice('请输入大于 0 的整数树叶数');
+            return;
+        }
         setBusy(true);
         try {
             const upload = image ? await prepareUploadImage(image, 1024 * 1024) : undefined;
@@ -46,13 +60,15 @@ export function Composer({
                 exclusiveName: identities.find((item) => item.id === exclusiveId)?.exclusive_id,
                 identityTypes,
             };
-            const hole = await publishHole(trimmed, label, upload, identity);
+            const hole = await publishHole(trimmed, label, upload, identity, rewardCost);
             onPublished(hole);
             setText('');
             setLabel(undefined);
             setImage(undefined);
             setExclusiveId(undefined);
             setIdentityTypes([]);
+            setBountyEnabled(false);
+            setRewardCostInput('1');
             onNotice('发布成功');
         } catch (nextError) {
             onNotice(nextError instanceof Error ? nextError.message : '发布失败');
@@ -84,6 +100,24 @@ export function Composer({
                     </IconButton>
                 </div>
             )}
+            {bountyEnabled && (
+                <div className="composer-bounty-options">
+                    <CoinRegular size={18} />
+                    <label htmlFor="composer-reward-cost">悬赏</label>
+                    <input
+                        id="composer-reward-cost"
+                        type="number"
+                        min={1}
+                        step={1}
+                        inputMode="numeric"
+                        value={rewardCostInput}
+                        onChange={(event) => setRewardCostInput(event.target.value)}
+                        aria-label="悬赏树叶数"
+                    />
+                    <span>树叶</span>
+                    <small>发布后立即扣除，未采纳或删除均不返还；可用数额以账户余额为准。</small>
+                </div>
+            )}
             <div className="composer-footer">
                 <div className="composer-tools">
                     <TagPicker
@@ -103,6 +137,15 @@ export function Composer({
                         onClick={() => inputRef.current?.click()}>
                         <PicRegular size={19} />
                         <span>图片</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`composer-tool ${bountyEnabled ? 'active' : ''}`}
+                        aria-pressed={bountyEnabled}
+                        title={bountyEnabled ? '取消悬赏' : '发布悬赏树洞'}
+                        onClick={() => setBountyEnabled((enabled) => !enabled)}>
+                        <CoinRegular size={19} />
+                        <span>悬赏</span>
                     </button>
                     <input
                         ref={inputRef}
@@ -131,4 +174,3 @@ export function Composer({
         </form>
     );
 }
-

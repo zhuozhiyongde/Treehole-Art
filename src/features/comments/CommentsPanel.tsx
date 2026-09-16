@@ -1,7 +1,15 @@
-import { CloseRegular, Delete2Regular, InformationRegular, Loading3Regular, PicRegular } from '@mingcute/react/core-regular';
+import {
+    AwardRegular,
+    CloseRegular,
+    Delete2Regular,
+    InformationRegular,
+    Loading3Regular,
+    PicRegular,
+} from '@mingcute/react/core-regular';
+import { AwardFilled } from '@mingcute/react/core-filled';
 import type { CSSProperties, FormEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchComments, prepareUploadImage, publishComment } from '../../api';
+import { fetchComments, prepareUploadImage, publishComment, setBestAnswer } from '../../api';
 import { commentColorIndex, commentColorToken } from '../../commentColors';
 import { IconButton } from '../../components/IconButton';
 import { IdentityBadges } from '../../components/IdentityBadges';
@@ -20,32 +28,48 @@ function commentColor(name = '洞友') {
 
 function CommentRow({
     comment,
+    rewardCost,
+    canSetBest,
+    settingBest,
     filtered,
     onAuthorClick,
     onReply,
     onPid,
+    onSetBest,
 }: {
     comment: TreeholeComment;
+    rewardCost?: number;
+    canSetBest: boolean;
+    settingBest: boolean;
     filtered: boolean;
     onAuthorClick: (comment: TreeholeComment) => void;
     onReply: (comment: TreeholeComment) => void;
     onPid: (pid: number) => void;
+    onSetBest: (comment: TreeholeComment) => void;
 }) {
     const color = commentColor(commentSender(comment));
     const quoteColor = comment.quote ? commentColor(comment.quote.name_tag) : color;
     const sender = commentSender(comment);
+    const isBestAnswer = Number(comment.reward_good) === 1;
     return (
         <article
-            className="comment-row"
+            className={`comment-row ${isBestAnswer ? 'is-best-answer' : ''}`}
             style={{ '--comment-color': color, '--quote-color': quoteColor } as CSSProperties}
             tabIndex={0}
-            aria-label={`回复 ${sender}`}
+            aria-label={`${isBestAnswer ? '最佳答案，' : ''}回复 ${sender}`}
             onClick={() => onReply(comment)}
             onKeyDown={(event) => {
                 if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
                 event.preventDefault();
                 onReply(comment);
             }}>
+            {isBestAnswer && (
+                <div className="best-answer-label">
+                    <AwardFilled size={17} />
+                    <strong>最佳答案</strong>
+                    {rewardCost && <span>已获得 {rewardCost} 树叶</span>}
+                </div>
+            )}
             <div className="comment-main">
                 <div className="comment-heading">
                     <button
@@ -61,6 +85,19 @@ function CommentRow({
                     </button>
                     <time title={fullTime(comment.timestamp)}>{formatTime(comment.timestamp)}</time>
                     <IdentityBadges item={comment} />
+                    {canSetBest && (
+                        <button
+                            type="button"
+                            className="set-best-answer"
+                            disabled={settingBest}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onSetBest(comment);
+                            }}>
+                            {settingBest ? <Loading3Regular className="spin" size={14} /> : <AwardRegular size={14} />}
+                            设为最佳答案
+                        </button>
+                    )}
                 </div>
                 {comment.quote?.name_tag && (
                     <div className="quote">
@@ -86,6 +123,7 @@ export function CommentsPanel({
     onClose,
     showClose = true,
     onCommentPublished,
+    onBestAnswerSelected,
     onNotice,
     onPid,
 }: {
@@ -95,6 +133,7 @@ export function CommentsPanel({
     onClose: () => void;
     showClose?: boolean;
     onCommentPublished: () => void;
+    onBestAnswerSelected: () => void;
     onNotice: (message: string) => void;
     onPid: (pid: number) => void;
 }) {
@@ -111,6 +150,7 @@ export function CommentsPanel({
     const [exclusiveId, setExclusiveId] = useState<number | undefined>();
     const [identityTypes, setIdentityTypes] = useState<number[]>([]);
     const [publishing, setPublishing] = useState(false);
+    const [settingBestCid, setSettingBestCid] = useState<number | null>(null);
     const [authorFilter, setAuthorFilter] = useState<string | null>(null);
     const [replyTarget, setReplyTarget] = useState<TreeholeComment | null>(null);
     const requestController = useRef<AbortController | null>(null);
@@ -119,6 +159,10 @@ export function CommentsPanel({
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
     const previewUrl = useMemo(() => (commentImage ? URL.createObjectURL(commentImage) : ''), [commentImage]);
+    const parsedRewardCost = Number(hole.reward_cost);
+    const rewardCost = Number.isFinite(parsedRewardCost) && parsedRewardCost > 0 ? parsedRewardCost : undefined;
+    const canSelectBest =
+        Number(hole.kind) === 1 && Number(hole.islz) === 1 && Number(hole.has_reward_good) !== 1;
 
     useEffect(
         () => () => {
@@ -181,6 +225,24 @@ export function CommentsPanel({
         window.requestAnimationFrame(() => commentInputRef.current?.focus());
     };
 
+    const handleSetBest = async (comment: TreeholeComment) => {
+        if (!canSelectBest || Number(comment.is_lz) !== 0 || settingBestCid !== null) return;
+        if (!window.confirm(`确认将 ${commentSender(comment)} 的回复设为最佳答案吗？悬赏发放后不可更改。`)) return;
+        setSettingBestCid(comment.cid);
+        try {
+            await setBestAnswer(comment.cid);
+            setComments((current) =>
+                current.map((item) => ({ ...item, reward_good: item.cid === comment.cid ? 1 : 0 })),
+            );
+            onBestAnswerSelected();
+            onNotice('已指定最佳答案，悬赏树叶将发放给该洞友');
+        } catch (nextError) {
+            onNotice(nextError instanceof Error ? nextError.message : '指定最佳答案失败');
+        } finally {
+            setSettingBestCid(null);
+        }
+    };
+
     const loadMore = async () => {
         const nextPage = page + 1;
         requestController.current?.abort();
@@ -239,6 +301,13 @@ export function CommentsPanel({
             <header className={`drawer-header ${showClose ? '' : 'without-close'}`}>
                 <h2 id={`comments-title-${hole.pid}`}>
                     {total} 条评论
+                    {Number(hole.kind) === 1 && (
+                        <span className="bounty-comment-summary">
+                            {' '}
+                            · 悬赏{rewardCost ? ` ${rewardCost} 树叶` : ''}
+                            {Number(hole.has_reward_good) === 1 ? ' · 已采纳' : ''}
+                        </span>
+                    )}
                     {authorFilter && (
                         <span>
                             {' '}
@@ -294,10 +363,14 @@ export function CommentsPanel({
                                 <CommentRow
                                     key={comment.cid}
                                     comment={comment}
+                                    rewardCost={rewardCost}
+                                    canSetBest={canSelectBest && Number(comment.is_lz) === 0}
+                                    settingBest={settingBestCid === comment.cid}
                                     filtered={authorFilter === commentSender(comment)}
                                     onAuthorClick={handleAuthorClick}
                                     onReply={handleReply}
                                     onPid={onPid}
+                                    onSetBest={handleSetBest}
                                 />
                             ))
                         ) : (

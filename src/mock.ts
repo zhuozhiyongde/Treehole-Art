@@ -96,6 +96,10 @@ export const mockHoles: Hole[] = [
     pid: 39403318,
     text: "有没有人今晚一起去看百讲的新生音乐会？临时多一张票，原价出，结束后可以一起走回宿舍。",
     type: "text",
+    kind: 1,
+    reward_cost: 12,
+    has_reward_good: 1,
+    islz: 1,
     timestamp: now - 2 * 3600,
     likenum: 18,
     reply: 12,
@@ -125,6 +129,10 @@ export const mockHoles: Hole[] = [
     pid: 39402510,
     text: "出一套保存很新的心理学导论教材和课堂笔记，书上只有少量铅笔标记，校内可以当面看。",
     type: "text",
+    kind: 1,
+    reward_cost: 8,
+    has_reward_good: 0,
+    islz: 1,
     timestamp: now - 7 * 3600,
     likenum: 9,
     reply: 5,
@@ -143,6 +151,47 @@ export const mockHoles: Hole[] = [
 ];
 
 export const mockComments: Record<number, TreeholeComment[]> = {
+  39403318: [
+    {
+      cid: 81011,
+      pid: 39403318,
+      name: "Alice",
+      text: "我这里刚好多一张同场票，可以一起从东门过去。",
+      timestamp: now - 110 * 60,
+      likenum: 8,
+      reward_good: 1,
+      is_lz: 0,
+    },
+    {
+      cid: 81012,
+      pid: 39403318,
+      name: "Bob",
+      text: "蹲一个结束后的返图。",
+      timestamp: now - 105 * 60,
+      likenum: 2,
+      is_lz: 0,
+    },
+  ],
+  39402510: [
+    {
+      cid: 81021,
+      pid: 39402510,
+      name: "Alice",
+      text: "想收，请问两本教材分别是哪一版？明天下午可以在图书馆门口看书。",
+      timestamp: now - 6 * 3600,
+      likenum: 3,
+      is_lz: 0,
+    },
+    {
+      cid: 81022,
+      pid: 39402510,
+      name: "Bob",
+      text: "如果还在的话排队，也可以今晚校内自取。",
+      timestamp: now - 5 * 3600,
+      likenum: 1,
+      is_lz: 0,
+    },
+  ],
   39403877: [
     {
       cid: 81001,
@@ -175,6 +224,19 @@ export const mockComments: Record<number, TreeholeComment[]> = {
 export function addMockComment(comment: TreeholeComment) {
   if (!mockComments[comment.pid]) mockComments[comment.pid] = [];
   mockComments[comment.pid].push(comment);
+}
+
+export function setMockBestAnswer(cid: number) {
+  for (const [pid, comments] of Object.entries(mockComments)) {
+    if (!comments.some((comment) => comment.cid === cid)) continue;
+    comments.forEach((comment) => {
+      comment.reward_good = comment.cid === cid ? 1 : 0;
+    });
+    const hole = mockHoles.find((item) => item.pid === Number(pid));
+    if (hole) hole.has_reward_good = 1;
+    return true;
+  }
+  return false;
 }
 
 export function commentsForHole(hole: Hole) {

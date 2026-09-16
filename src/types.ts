@@ -58,6 +58,10 @@ export interface Hole {
   pid: number;
   text: string;
   type: "text" | "image";
+  kind?: number;
+  reward_cost?: number;
+  has_reward_good?: 0 | 1;
+  islz?: 0 | 1;
   timestamp: number;
   likenum: number;
   praise_num?: number;
@@ -97,6 +101,8 @@ export interface TreeholeComment {
   likenum?: number;
   is_follow?: 0 | 1;
   media_ids?: string;
+  reward_good?: 0 | 1;
+  is_lz?: 0 | 1;
   exclusive_id_id?: number;
   exclusive_id_info?: { exclusive_id?: string };
   identity_info?: IdentityInfo;
@@ -108,6 +114,7 @@ export interface PageResult<T> {
   lastPage: number;
 }
 
-export type FeedMode = "latest" | "bookmarks";
+export type FeedMode = "latest" | "bookmarks" | "bounty";
+export type BlockingWordMode = "collapse" | "hide";
 export type CommentViewMode = "modal" | "inline";
 export type ThemeMode = "system" | "light" | "dark";

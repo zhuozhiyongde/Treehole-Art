@@ -1,11 +1,11 @@
-import { ShieldRegular } from '@mingcute/react/core-regular';
+import { AwardRegular, ShieldRegular } from '@mingcute/react/core-regular';
 import { useEffect, useState } from 'react';
 import { fetchHole } from '../../api';
 import { ExpandableRichText } from '../../components/RichText';
 import { PostImage } from '../../components/MediaImages';
 import { displayText } from '../../normalize';
 import { formatTime, fullTime } from '../../lib/presentation';
-import type { Hole } from '../../types';
+import type { BlockingWordMode, Hole } from '../../types';
 
 export function QuotedHole({
     pid,
@@ -14,6 +14,7 @@ export function QuotedHole({
     onPid,
     highlightTerms,
     blockingWords,
+    blockingWordMode,
     onCopyPid,
 }: {
     pid: number;
@@ -22,6 +23,7 @@ export function QuotedHole({
     onPid: (pid: number) => void;
     highlightTerms: string[];
     blockingWords: string[];
+    blockingWordMode: BlockingWordMode;
     onCopyPid: (pid: number) => void;
 }) {
     const [hole, setHole] = useState<Hole | undefined>(initialHole);
@@ -43,10 +45,13 @@ export function QuotedHole({
 
     useEffect(() => setShowBlockedContent(false), [blockedWord, pid]);
 
-    if (!hole) return null;
+    if (!hole || (blockedWord && blockingWordMode === 'hide')) return null;
+    const isBounty = Number(hole.kind) === 1;
+    const rewardCost = Number(hole.reward_cost);
+    const bountyLabel = Number.isFinite(rewardCost) && rewardCost > 0 ? `悬赏 ${rewardCost} 树叶` : '悬赏树洞';
     return (
         <aside
-            className="quoted-hole"
+            className={`quoted-hole ${isBounty ? 'is-bounty' : ''}`}
             aria-label={`打开引用树洞 ${hole.pid}`}
             role="button"
             tabIndex={0}
@@ -72,6 +77,12 @@ export function QuotedHole({
                     #{hole.pid}
                 </button>
                 <time title={fullTime(hole.timestamp)}>{formatTime(hole.timestamp)}</time>
+                {isBounty && (
+                    <span className="quoted-bounty-badge">
+                        <AwardRegular size={13} />
+                        {bountyLabel}
+                    </span>
+                )}
             </div>
             {blockedWord && !showBlockedContent ? (
                 <div className="blocked-content quoted-blocked" onClick={(event) => event.stopPropagation()}>
@@ -96,4 +107,3 @@ export function QuotedHole({
         </aside>
     );
 }
-

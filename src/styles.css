@@ -96,6 +96,10 @@ html.treehole-art-active body.drawer-open {
   overflow: hidden;
 }
 
+html.treehole-art-active body.image-lightbox-open {
+  overflow: hidden;
+}
+
 #root,
 #treehole-art-root {
   min-height: 100vh;
@@ -105,6 +109,39 @@ html.treehole-art-active body.drawer-open {
 #root * {
   box-sizing: border-box;
   letter-spacing: 0;
+}
+
+#root,
+#root *,
+#treehole-art-root,
+#treehole-art-root * {
+  scrollbar-color: color-mix(in srgb, var(--text-tertiary) 58%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+#root *::-webkit-scrollbar,
+#treehole-art-root *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#root *::-webkit-scrollbar-track,
+#treehole-art-root *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#root *::-webkit-scrollbar-thumb,
+#treehole-art-root *::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-tertiary) 58%, transparent);
+  background-clip: padding-box;
+}
+
+#root *::-webkit-scrollbar-thumb:hover,
+#treehole-art-root *::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  background-clip: padding-box;
 }
 
 button,
@@ -658,6 +695,66 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 .composer-tool:hover {
   background: var(--surface-hover);
   color: var(--text);
+}
+
+.composer-tool.active {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.composer-bounty-options {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  margin-bottom: 7px;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--warning) 28%, var(--border));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--warning-soft) 58%, var(--surface));
+  color: var(--warning);
+  font-size: 11px;
+}
+
+.composer-bounty-options label {
+  flex: 0 0 auto;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.composer-bounty-options input {
+  width: 78px;
+  flex: 0 0 78px;
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid color-mix(in srgb, var(--warning) 32%, var(--border));
+  border-radius: 4px;
+  outline: 0;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.composer-bounty-options > svg,
+.composer-bounty-options > span {
+  flex: 0 0 auto;
+}
+
+.composer-bounty-options > span {
+  white-space: nowrap;
+}
+
+.composer-bounty-options input:focus {
+  border-color: var(--warning);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--warning) 16%, transparent);
+}
+
+.composer-bounty-options small {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: 4px;
+  color: var(--text-tertiary);
+  line-height: 1.45;
 }
 
 .tag-picker {
@@ -1331,6 +1428,18 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   align-self: center;
 }
 
+.bounty-status-badge {
+  border-color: color-mix(in srgb, var(--warning) 30%, var(--border)) !important;
+  background: var(--warning-soft) !important;
+  color: var(--warning) !important;
+}
+
+.bounty-status-badge.is-resolved {
+  border-color: color-mix(in srgb, var(--positive) 30%, var(--border)) !important;
+  background: var(--positive-soft) !important;
+  color: var(--positive) !important;
+}
+
 .badge {
   min-height: 19px;
   padding: 1px 6px;
@@ -1385,6 +1494,48 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   border-color: color-mix(in srgb, var(--positive) 28%, var(--border));
   background: var(--positive-soft);
   color: var(--positive);
+}
+
+.bounty-summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 9px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--warning) 28%, var(--border));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--warning-soft) 72%, var(--surface));
+  color: var(--warning);
+}
+
+.is-bounty-resolved .bounty-summary {
+  border-color: color-mix(in srgb, var(--positive) 28%, var(--border));
+  background: color-mix(in srgb, var(--positive-soft) 72%, var(--surface));
+  color: var(--positive);
+}
+
+.bounty-summary > svg {
+  flex: 0 0 auto;
+}
+
+.bounty-summary > span {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bounty-summary strong {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.bounty-summary small {
+  color: var(--text-secondary);
+  font-size: 10px;
+  text-align: right;
 }
 
 .comment-heading .identity-badges {
@@ -1461,6 +1612,13 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   border: 1px solid var(--border);
   border-radius: 6px;
   object-fit: contain;
+  cursor: zoom-in;
+}
+
+.post-image:focus-visible,
+.comment-image:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
 }
 
 .post-media-list,
@@ -1492,6 +1650,7 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   border: 1px solid var(--border);
   border-radius: 6px;
   object-fit: contain;
+  cursor: zoom-in;
 }
 
 .quoted-hole {
@@ -1512,6 +1671,11 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   background: var(--accent-soft);
 }
 
+.quoted-hole.is-bounty {
+  border-color: color-mix(in srgb, var(--warning) 32%, var(--border));
+  background: color-mix(in srgb, var(--warning-soft) 52%, var(--surface-hover));
+}
+
 .quoted-hole:focus-visible {
   outline: none;
   box-shadow: var(--focus);
@@ -1523,6 +1687,15 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   gap: 9px;
   color: var(--text-tertiary);
   font-size: 11px;
+}
+
+.quoted-bounty-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  color: var(--warning);
+  font-weight: 650;
 }
 
 .quoted-hole-meta button {
@@ -2496,6 +2669,37 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   background: color-mix(in srgb, var(--surface-hover) 62%, var(--surface));
 }
 
+.comment-row.is-best-answer {
+  background: color-mix(in srgb, var(--warning-soft) 54%, var(--surface));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--warning) 72%, var(--border));
+}
+
+.comment-row.is-best-answer:hover {
+  background: color-mix(in srgb, var(--warning-soft) 74%, var(--surface));
+}
+
+.best-answer-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+  color: var(--warning);
+  font-size: 10px;
+}
+
+.best-answer-label strong {
+  font-size: 11px;
+}
+
+.best-answer-label span {
+  color: var(--text-tertiary);
+}
+
+.bounty-comment-summary {
+  color: var(--warning) !important;
+  font-weight: 650 !important;
+}
+
 .comment-row:focus-visible {
   outline: none;
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 38%, transparent);
@@ -2507,6 +2711,7 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 
 .comment-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 8px;
   min-height: 24px;
@@ -2539,6 +2744,27 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 .comment-heading time {
   color: var(--text-tertiary);
   font-size: 10px;
+}
+
+.set-best-answer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 25px;
+  margin-left: auto;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+  border-radius: 4px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.set-best-answer:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--warning) 52%, var(--border));
+  background: color-mix(in srgb, var(--warning-soft) 76%, var(--surface));
 }
 
 .comment-main p {
@@ -2747,9 +2973,84 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 }
 
 .settings-content {
+  min-width: 0;
   min-height: 220px;
   padding: 18px 20px;
+  overflow-x: hidden;
   overflow-y: auto;
+}
+
+.blocking-mode-setting {
+  min-width: 0;
+  margin: 0 0 18px;
+  padding: 0 0 18px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.blocking-mode-setting legend {
+  padding: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.blocking-mode-setting > p {
+  margin: 4px 0 10px;
+  color: var(--text-tertiary);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.blocking-mode-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.blocking-mode-options label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.blocking-mode-options label:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.blocking-mode-options label.active {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: var(--accent-soft);
+}
+
+.blocking-mode-options input {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+.blocking-mode-options span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.blocking-mode-options strong {
+  color: var(--text);
+  font-size: 11px;
+}
+
+.blocking-mode-options small {
+  color: var(--text-tertiary);
+  font-size: 9px;
+  line-height: 1.5;
 }
 
 .blocking-word-form {
@@ -2792,6 +3093,15 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   background: var(--surface);
   color: var(--text-secondary);
   font-size: 12px;
+}
+
+.blocking-word-list > div:not(.settings-empty) > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.settings-content .icon-button[data-tooltip]::after {
+  display: none;
 }
 
 .settings-empty {
@@ -3032,6 +3342,50 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   from { transform: translateY(8px); opacity: 0; }
 }
 
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  box-sizing: border-box;
+  place-items: center;
+  padding: 56px;
+  background: rgba(0, 0, 0, 0.86);
+  backdrop-filter: blur(5px);
+  cursor: zoom-out;
+  animation: fade-in 150ms ease both;
+}
+
+.image-lightbox > img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 6px;
+  object-fit: contain;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  cursor: default;
+}
+
+.image-lightbox-close {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.44);
+  color: #fff;
+}
+
+.image-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .mobile-nav {
   display: none;
 }
@@ -3092,6 +3446,15 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 }
 
 @media (max-width: 760px) {
+  .image-lightbox {
+    padding: 64px 14px 20px;
+  }
+
+  .image-lightbox-close {
+    top: 12px;
+    right: 12px;
+  }
+
   .app-shell {
     display: block;
     width: 100%;
@@ -3296,6 +3659,16 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
     padding: 0 6px;
   }
 
+  .bounty-summary > span {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+  }
+
+  .bounty-summary small {
+    text-align: left;
+  }
+
   .bookmark-popover { left: 0; }
 
   .icon-button[data-tooltip]::after { display: none; }
@@ -3307,7 +3680,7 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
     left: 0;
     z-index: 50;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     grid-template-rows: minmax(0, 1fr);
     height: calc(58px + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);

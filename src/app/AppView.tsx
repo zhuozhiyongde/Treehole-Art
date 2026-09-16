@@ -1,10 +1,10 @@
 import {
     ArrowLeftRegular,
-    Book2Regular,
     BookmarkRegular,
     CheckRegular,
     CloseRegular,
     ComputerRegular,
+    CoinRegular,
     Filter3Regular,
     HashtagRegular,
     Home4Regular,
@@ -55,6 +55,7 @@ export function AppView({ controller }: { controller: AppController }) {
         tags,
         bookmarkGroups,
         blockingWords,
+        blockingWordMode,
         postingIdentities,
         holes,
         page,
@@ -222,11 +223,18 @@ export function AppView({ controller }: { controller: AppController }) {
                         className={!docsOpen && mode === 'bookmarks' ? 'active' : ''}
                         onClick={() => switchMode('bookmarks')}>
                         <BookmarkRegular size={19} />
-                        <span>收藏</span>
+                        <span>关注</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={!docsOpen && mode === 'bounty' ? 'active' : ''}
+                        onClick={() => switchMode('bounty')}>
+                        <CoinRegular size={19} />
+                        <span>悬赏</span>
                     </button>
                     <button type="button" className={docsOpen ? 'active' : ''} onClick={openDocumentation}>
-                        <Book2Regular size={19} />
-                        <span>文档</span>
+                        <InformationRegular size={19} />
+                        <span>关于</span>
                     </button>
                 </nav>
                 <div className="rail-context-tools" aria-label="内容管理">
@@ -353,7 +361,9 @@ export function AppView({ controller }: { controller: AppController }) {
 
                         <div className="feed-heading">
                     <div>
-                        <h1>{mode === 'latest' ? '最新树洞' : '我的收藏'}</h1>
+                        <h1>
+                            {mode === 'latest' ? '最新树洞' : mode === 'bounty' ? '悬赏树洞' : '我的关注'}
+                        </h1>
                         <span>{candidateTotal ? `${candidateTotal} 条内容` : '实时更新'}</span>
                     </div>
                     <TagPicker
@@ -449,6 +459,7 @@ export function AppView({ controller }: { controller: AppController }) {
                                         onOpenReferencedHole={(pid) => void openReferencedPid(pid, hole)}
                                         highlightTerms={highlightTerms}
                                         blockingWords={blockingWords}
+                                        blockingWordMode={blockingWordMode}
                                     />
                                     {commentViewMode === 'inline' && expandedCommentPids.has(hole.pid) && (
                                         <CommentsPanel
@@ -458,6 +469,9 @@ export function AppView({ controller }: { controller: AppController }) {
                                             onClose={() => closeInlineComments(hole.pid)}
                                             onCommentPublished={() =>
                                                 updateHole(hole.pid, (item) => ({ ...item, reply: item.reply + 1 }))
+                                            }
+                                            onBestAnswerSelected={() =>
+                                                updateHole(hole.pid, (item) => ({ ...item, has_reward_good: 1 }))
                                             }
                                             onNotice={setToast}
                                             onPid={(pid) => void openReferencedPid(pid, hole)}
@@ -516,11 +530,18 @@ export function AppView({ controller }: { controller: AppController }) {
                     className={!docsOpen && mode === 'bookmarks' ? 'active' : ''}
                     onClick={() => switchMode('bookmarks')}>
                     <BookmarkRegular size={20} />
-                    <span>收藏</span>
+                    <span>关注</span>
+                </button>
+                <button
+                    type="button"
+                    className={!docsOpen && mode === 'bounty' ? 'active' : ''}
+                    onClick={() => switchMode('bounty')}>
+                    <CoinRegular size={20} />
+                    <span>悬赏</span>
                 </button>
                 <button type="button" className={docsOpen ? 'active' : ''} onClick={openDocumentation}>
-                    <Book2Regular size={20} />
-                    <span>文档</span>
+                    <InformationRegular size={20} />
+                    <span>关于</span>
                 </button>
             </nav>
 
@@ -532,6 +553,9 @@ export function AppView({ controller }: { controller: AppController }) {
                     onClose={() => setSelectedHole(null)}
                     onCommentPublished={() =>
                         updateHole(selectedHole.pid, (hole) => ({ ...hole, reply: hole.reply + 1 }))
+                    }
+                    onBestAnswerSelected={() =>
+                        updateHole(selectedHole.pid, (hole) => ({ ...hole, has_reward_good: 1 }))
                     }
                     onNotice={setToast}
                     onPid={(pid) => void openReferencedPid(pid, selectedHole)}
@@ -616,6 +640,7 @@ export function AppView({ controller }: { controller: AppController }) {
                                 onOpenReferencedHole={(pid) => void openReferencedPid(pid, currentDetailHole)}
                                 highlightTerms={[]}
                                 blockingWords={blockingWords}
+                                blockingWordMode={blockingWordMode}
                             />
                             <div id={`detail-comments-${currentDetailHole.pid}`}>
                                 <CommentsPanel
@@ -629,6 +654,12 @@ export function AppView({ controller }: { controller: AppController }) {
                                         updateHole(currentDetailHole.pid, (hole) => ({
                                             ...hole,
                                             reply: hole.reply + 1,
+                                        }))
+                                    }
+                                    onBestAnswerSelected={() =>
+                                        updateHole(currentDetailHole.pid, (hole) => ({
+                                            ...hole,
+                                            has_reward_good: 1,
                                         }))
                                     }
                                     onNotice={setToast}
@@ -648,9 +679,10 @@ export function AppView({ controller }: { controller: AppController }) {
             <BlockingWordsDialog
                 open={blockingWordsOpen}
                 words={blockingWords}
+                mode={blockingWordMode}
                 busy={blockingWordsBusy}
                 onClose={() => setBlockingWordsOpen(false)}
-                onSave={(words) => void saveBlockingWords(words)}
+                onSave={(words, nextMode) => void saveBlockingWords(words, nextMode)}
             />
             <BookmarkDeleteDialog
                 target={bookmarkDeleteTarget}

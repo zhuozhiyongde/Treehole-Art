@@ -24,6 +24,18 @@ export function normalizeComment(comment: TreeholeComment): TreeholeComment {
     text: displayText(comment.text),
     name: name || undefined,
     quote,
+    reward_good:
+      comment.reward_good === undefined
+        ? undefined
+        : Number(comment.reward_good) === 1
+          ? 1
+          : 0,
+    is_lz:
+      comment.is_lz === undefined
+        ? undefined
+        : Number(comment.is_lz) === 1
+          ? 1
+          : 0,
   };
 }
 

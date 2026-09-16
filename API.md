@@ -1,6 +1,8 @@
 # 北大树洞 Web API 静态整理
 
 > 本文档根据当前目录中的旧版 Web 前端打包代码静态还原，不是官方 API 文档，也未对线上接口发起验证请求。无版本号的路径、字段和限流策略都可能变化。
+>
+> 文中标为“新版 `/chapi`”的接口来自当前官方 `/ch/` 前端产物及其实际调用方式。它们是官方页面正在使用的内部接口，但仍不等同于校方对外发布、承诺兼容性的公开 API。
 
 ## 1. 基础约定
 
@@ -63,6 +65,30 @@ async function treeholeApi(path, options = {}) {
 }
 ```
 
+### 1.3 新版 `/chapi` 请求约定
+
+当前官方 `/ch/` 页面使用另一组同源接口，基址为：
+
+```text
+/chapi/api/v3
+```
+
+本项目中的悬赏发布和最佳答案操作使用这组接口。常见请求头如下：
+
+```http
+Authorization: Bearer <token>
+Uuid: Web_PKUHOLE_2.0.0_WEB_UUID_<uuid>
+userAgent: pku_web
+X-XSRF-TOKEN: <XSRF-TOKEN cookie，可选>
+Content-Type: application/json
+```
+
+- Token 优先读取 `localStorage["token"]`，没有时回退到 Cookie `pku_token`。
+- `X-XSRF-TOKEN` 来自 Cookie `XSRF-TOKEN`；不存在时不发送。
+- 请求携带 `credentials: "same-origin"`。
+- JSON 响应仍使用统一信封结构；当前客户端将 `success === false`，或存在且不等于 `20000` 的 `code` 视为业务失败。
+- 本地 `localhost`/`127.0.0.1` 预览不会调用线上接口，而是使用项目中的 Mock 数据。
+
 ## 2. 统一响应
 
 常见 JSON 响应外形：
@@ -106,6 +132,10 @@ interface Hole {
   pid: number;
   text: string;
   type: "text" | "image";
+  kind?: 0 | 1;                // 新版：0 普通树洞，1 悬赏树洞
+  reward_cost?: number;        // 新版：悬赏树叶数
+  has_reward_good?: 0 | 1;     // 新版：是否已经指定最佳答案
+  islz?: 0 | 1;                // 新版：当前用户是否为洞主
   timestamp: number;            // Unix 秒
   likenum: number;
   reply: number;
@@ -129,6 +159,8 @@ interface Comment {
   type?: "text" | "image";
   likenum?: number;
   is_follow?: 0 | 1;
+  reward_good?: 0 | 1;         // 新版：是否为悬赏最佳答案
+  is_lz?: 0 | 1;               // 新版：该回复是否由洞主发布
 }
 ```
 
@@ -213,6 +245,87 @@ Content-Type：`multipart/form-data`。
 | `data` | 图片时 | 图片 File |
 
 存档前端只接受 JPG/JPEG/PNG，并在上传前将超过 `716800` 字节的图片压缩为 JPEG。这是已观察的客户端限制，不代表后端的完整校验规则。
+
+### 新版 `/chapi`：发布悬赏树洞
+
+```http
+POST /chapi/api/v3/hole/post
+Content-Type: application/json
+```
+
+悬赏树洞与普通树洞使用同一个发布接口，通过 `kind` 和 `reward_cost` 区分：
+
+```ts
+interface CreateV3HoleBody {
+  kind: 0 | 1;                 // 0 普通树洞；1 悬赏树洞
+  type: "text" | "image";
+  text: string;
+  tags_ids: string;            // 无标签时为空字符串
+  media_ids: string;           // 无图片时为空字符串
+  identity_show: 0 | 1;
+  identity_type: string;       // 身份类型 ID，多个值用逗号分隔
+  exclusive_id_id?: number;
+  reward_cost?: number;        // kind === 1 时提供，正整数且至少为 1
+}
+```
+
+悬赏请求示例：
+
+```json
+{
+  "kind": 1,
+  "type": "text",
+  "text": "求一份课程复习建议",
+  "tags_ids": "",
+  "media_ids": "",
+  "identity_show": 0,
+  "identity_type": "",
+  "reward_cost": 8
+}
+```
+
+普通树洞发送 `kind: 0`，且不发送 `reward_cost`。客户端兼容成功响应中的 `data` 为新洞号或完整 `Hole` 对象两种形式。
+
+当前官方前端体现的悬赏规则：
+
+- `reward_cost` 最小为 `1`，实际可用数量受账户树叶余额限制。
+- 发布时立即扣除对应树叶。
+- 未指定最佳答案或删除树洞，树叶也不会返还。
+
+### 新版 `/chapi`：指定悬赏最佳答案
+
+```http
+POST /chapi/api/v3/comment/good
+Content-Type: application/json
+```
+
+JSON Body：
+
+```json
+{
+  "cid": 81021
+}
+```
+
+其中 `cid` 是被指定为最佳答案的评论 ID。官方前端仅在同时满足以下条件时展示操作入口：
+
+```ts
+hole.kind === 1 &&
+hole.islz === 1 &&
+comment.is_lz === 0 &&
+hole.has_reward_good === 0
+```
+
+也就是：当前树洞是未完成的悬赏、当前用户是洞主，并且目标回复不是洞主自己的回复。
+
+操作成功后，客户端应同步更新：
+
+- 目标评论 `reward_good = 1`；
+- 当前树洞 `has_reward_good = 1`；
+- 隐藏其余“设为最佳答案”入口；
+- 将悬赏状态由“悬赏征集中”切换为“悬赏已完成”。
+
+最佳答案与悬赏状态在刷新后应以服务端返回的 `reward_good` 和 `has_reward_good` 为准。
 
 ### `GET /pku_image/:pid`
 
@@ -362,6 +475,7 @@ IAAA 重新登录入口不在 `/api` 下：
 
 ## 14. 源码依据
 
+- 新版 `/chapi` 悬赏字段、发布参数、最佳答案接口及展示条件：当前官方 `/ch/` 前端产物；本项目对应调用位于 `src/api.ts`。
 - API 封装、认证请求头和端点定义：`北大树洞_files/chunk-d3039df2.5595e81d.js` 中的 Webpack 模块 `7c15`。
 - 信息流、评论、发布、收藏、举报和消息的参数调用点：`北大树洞_files/chunk-97c5d8ec.12d215bb.js`。
 - Token Cookie 读写：`北大树洞_files/chunk-d3039df2.5595e81d.js` 中的 Webpack 模块 `5f87`。
