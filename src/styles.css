@@ -1735,8 +1735,7 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 }
 
 .hole-actions > button,
-.bookmark-anchor > button,
-.copy-anchor > button {
+.bookmark-anchor > button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1750,8 +1749,7 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 }
 
 .hole-actions > button:hover,
-.bookmark-anchor > button:hover,
-.copy-anchor > button:hover {
+.bookmark-anchor > button:hover {
   background: var(--surface-pressed);
   color: var(--text-secondary);
 }
@@ -1835,52 +1833,6 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   gap: 4px;
   margin-left: 3px;
   font-size: 11px;
-}
-
-.copy-anchor {
-  position: relative;
-  margin-left: auto;
-}
-
-.copy-popover {
-  right: 0;
-  bottom: calc(100% + 4px);
-  width: 200px;
-  cursor: default;
-}
-
-.copy-popover > button {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  min-height: 46px;
-  padding: 7px 8px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-secondary);
-  text-align: left;
-}
-
-.copy-popover > button:hover {
-  background: var(--surface-hover);
-  color: var(--text);
-}
-
-.copy-popover > button > span {
-  display: grid;
-  gap: 2px;
-}
-
-.copy-popover strong {
-  color: var(--text);
-  font-size: 12px;
-}
-
-.copy-popover small {
-  color: var(--text-tertiary);
-  font-size: 10px;
 }
 
 .bookmark-popover {
@@ -3736,8 +3688,7 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   }
 
   .hole-actions > button,
-  .bookmark-anchor > button,
-  .copy-anchor > button {
+  .bookmark-anchor > button {
     padding: 0 6px;
   }
 
