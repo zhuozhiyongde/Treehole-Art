@@ -58,8 +58,7 @@ export function AppView({ controller }: { controller: AppController }) {
         blockingWordMode,
         postingIdentities,
         holes,
-        page,
-        lastPage,
+        hasMore,
         candidateTotal,
         loading,
         feedError,
@@ -485,13 +484,13 @@ export function AppView({ controller }: { controller: AppController }) {
                                     {feedError}
                                 </div>
                             )}
-                            {page < lastPage && (
+                            {hasMore && (
                                 <div className="infinite-sentinel" ref={feedSentinelRef}>
                                     <Loading3Regular size={17} className="spin" />
                                     正在加载更多
                                 </div>
                             )}
-                            {page >= lastPage && (
+                            {!hasMore && (
                                 <div className="feed-end">
                                     <span />
                                     已经到底了
@@ -502,7 +501,7 @@ export function AppView({ controller }: { controller: AppController }) {
                     ) : (
                         <>
                             <EmptyState mode={mode} searching={isSearching} />
-                            {page < lastPage && (
+                            {hasMore && (
                                 <div className="infinite-sentinel" ref={feedSentinelRef}>
                                     <Loading3Regular size={17} className="spin" />
                                     正在继续查找

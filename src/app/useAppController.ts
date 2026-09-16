@@ -20,6 +20,13 @@ import { writeClipboard } from '../lib/clipboard';
 import { commentSender, copyTime } from '../lib/presentation';
 import { displayText } from '../normalize';
 import { matchesAdvancedQuery, parseQuery, type ParsedQuery } from '../search';
+import {
+    createFeedBranches,
+    describeFeedFailures,
+    fetchNextFeedBatch,
+    type FeedBranchState,
+    type FeedRequestPacingState,
+} from '../feedPagination';
 import type {
     BookmarkGroup,
     BlockingWordMode,
@@ -80,7 +87,7 @@ export function useAppController() {
     const [postingIdentities, setPostingIdentities] = useState<PostingIdentity[]>([]);
     const [holes, setHoles] = useState<Hole[]>([]);
     const [page, setPage] = useState(1);
-    const [lastPage, setLastPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
     const [candidateTotal, setCandidateTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -105,6 +112,9 @@ export function useAppController() {
     const detailRequestController = useRef<AbortController | null>(null);
     const feedSentinelRef = useRef<HTMLDivElement>(null);
     const loadMoreAction = useRef<() => void>(() => undefined);
+    const feedBranches = useRef<Map<string, FeedBranchState>>(new Map());
+    const feedRequestPacing = useRef<FeedRequestPacingState>({});
+    const loadingMoreRef = useRef(false);
 
     const refreshUnreadCount = useCallback(async () => {
         const results = await Promise.allSettled([
@@ -195,48 +205,64 @@ export function useAppController() {
         return () => document.removeEventListener('keydown', onKeyDown);
     }, []);
 
-    const fetchActiveFeedPage = useCallback(
-        async (targetPage: number, signal: AbortSignal) => {
-            const results = await Promise.all(
-                activeQuery.backendQueries.map((keyword) =>
+    const fetchActiveFeedBatch = useCallback(
+        async (signal: AbortSignal) => {
+            const batch = await fetchNextFeedBatch({
+                branches: feedBranches.current,
+                pageSize: PAGE_SIZE,
+                signal,
+                pacing: feedRequestPacing.current,
+                request: (keyword, branchPage, branchSignal) =>
                     fetchFeed({
                         mode,
-                        page: targetPage,
+                        page: branchPage,
                         limit: PAGE_SIZE,
                         keyword,
                         label: selectedLabel,
                         bookmarkId: selectedBookmark,
-                        signal,
+                        signal: branchSignal,
                     }),
-                ),
-            );
+            });
             const itemsByPid = new Map<number, Hole>();
-            for (const result of results) {
+            for (const { result } of batch.results) {
                 for (const hole of result.items) itemsByPid.set(hole.pid, hole);
             }
             return {
                 items: [...itemsByPid.values()].sort(
                     (left, right) => Number(right.timestamp) - Number(left.timestamp),
                 ),
-                total: results.reduce((total, result) => total + result.total, 0),
-                lastPage: Math.max(...results.map((result) => result.lastPage)),
+                total: batch.total,
+                hasMore: batch.hasMore,
+                failures: batch.failures,
+                successfulBranches: batch.results.length,
             };
         },
-        [activeQuery.backendQueries, mode, selectedBookmark, selectedLabel],
+        [mode, selectedBookmark, selectedLabel],
     );
 
     const loadFirstPage = useCallback(async () => {
         feedController.current?.abort();
         const controller = new AbortController();
         feedController.current = controller;
+        loadingMoreRef.current = false;
+        feedBranches.current = createFeedBranches(activeQuery.backendQueries);
         setLoading(true);
+        setLoadingMore(false);
         setFeedError('');
+        setHoles([]);
+        setCandidateTotal(0);
+        setPage(1);
+        setHasMore(false);
         setBookmarkMenuPid(null);
         try {
-            const result = await fetchActiveFeedPage(1, controller.signal);
+            const result = await fetchActiveFeedBatch(controller.signal);
+            if (!result.successfulBranches && result.failures.length) {
+                throw new Error(describeFeedFailures(result.failures, true));
+            }
             setHoles(result.items);
             setCandidateTotal(result.total);
-            setLastPage(result.lastPage);
+            setHasMore(result.hasMore);
+            setFeedError(describeFeedFailures(result.failures));
             setPage(1);
         } catch (nextError) {
             if ((nextError as Error).name !== 'AbortError') {
@@ -245,7 +271,7 @@ export function useAppController() {
         } finally {
             if (!controller.signal.aborted) setLoading(false);
         }
-    }, [fetchActiveFeedPage]);
+    }, [activeQuery.backendQueries, fetchActiveFeedBatch]);
 
     useEffect(() => {
         void loadFirstPage();
@@ -445,7 +471,8 @@ export function useAppController() {
     };
 
     const loadMore = async () => {
-        if (loadingMore || page >= lastPage) return;
+        if (loadingMoreRef.current || !hasMore) return;
+        loadingMoreRef.current = true;
         feedController.current?.abort();
         const controller = new AbortController();
         feedController.current = controller;
@@ -453,7 +480,7 @@ export function useAppController() {
         setFeedError('');
         const nextPage = page + 1;
         try {
-            const result = await fetchActiveFeedPage(nextPage, controller.signal);
+            const result = await fetchActiveFeedBatch(controller.signal);
             setHoles((current) => {
                 const known = new Set(current.map((hole) => hole.pid));
                 return [...current, ...result.items.filter((hole) => !known.has(hole.pid))].sort(
@@ -461,12 +488,14 @@ export function useAppController() {
                 );
             });
             setPage(nextPage);
-            setLastPage(result.lastPage);
+            setHasMore(result.hasMore);
+            setFeedError(describeFeedFailures(result.failures));
         } catch (nextError) {
             if ((nextError as Error).name !== 'AbortError') {
                 setFeedError(nextError instanceof Error ? nextError.message : '加载更多失败');
             }
         } finally {
+            loadingMoreRef.current = false;
             if (!controller.signal.aborted) setLoadingMore(false);
         }
     };
@@ -475,7 +504,7 @@ export function useAppController() {
 
     useEffect(() => {
         const sentinel = feedSentinelRef.current;
-        if (!sentinel || loading || loadingMore || page >= lastPage) return;
+        if (!sentinel || loading || loadingMore || !hasMore) return;
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) loadMoreAction.current();
@@ -484,7 +513,7 @@ export function useAppController() {
         );
         observer.observe(sentinel);
         return () => observer.disconnect();
-    }, [lastPage, loading, loadingMore, page, visibleHoles.length]);
+    }, [hasMore, loading, loadingMore, page, visibleHoles.length]);
 
     const updateHole = (pid: number, updater: (hole: Hole) => Hole) => {
         setHoles((current) => current.map((hole) => (hole.pid === pid ? updater(hole) : hole)));
@@ -764,7 +793,7 @@ export function useAppController() {
         postingIdentities,
         holes,
         page,
-        lastPage,
+        hasMore,
         candidateTotal,
         loading,
         feedError,
