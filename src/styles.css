@@ -3346,30 +3346,65 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
   position: fixed;
   inset: 0;
   z-index: 200;
-  display: grid;
   box-sizing: border-box;
-  place-items: center;
-  padding: 56px;
   background: rgba(0, 0, 0, 0.86);
   backdrop-filter: blur(5px);
-  cursor: zoom-out;
   animation: fade-in 150ms ease both;
 }
 
-.image-lightbox > img {
+.image-lightbox-scroll {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(255, 255, 255, 0.42) transparent;
+  scrollbar-width: thin;
+}
+
+.image-lightbox-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.image-lightbox-scroll::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  background-clip: padding-box;
+}
+
+.image-lightbox-stage {
+  display: grid;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
+  place-items: center;
+  padding: 56px;
+  cursor: zoom-out;
+}
+
+.image-lightbox-image {
   display: block;
-  max-width: 100%;
-  max-height: 100%;
+  max-width: none;
+  max-height: none;
   border-radius: 6px;
-  object-fit: contain;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
-  cursor: default;
+  cursor: zoom-in;
+  opacity: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.image-lightbox-image.is-ready {
+  opacity: 1;
 }
 
 .image-lightbox-close {
-  position: fixed;
+  position: absolute;
   top: 18px;
   right: 18px;
+  z-index: 2;
   display: inline-flex;
   width: 40px;
   height: 40px;
@@ -3384,6 +3419,49 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 
 .image-lightbox-close:hover {
   background: rgba(255, 255, 255, 0.16);
+}
+
+.image-lightbox-toolbar {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.62);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
+  color: #fff;
+  transform: translateX(-50%);
+}
+
+.image-lightbox-toolbar button {
+  display: inline-flex;
+  height: 34px;
+  min-width: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+}
+
+.image-lightbox-toolbar button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.image-lightbox-toolbar .image-lightbox-fit {
+  min-width: 78px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .mobile-nav {
@@ -3446,13 +3524,17 @@ html.treehole-art-active[data-treehole-theme="dark"] .brand > img {
 }
 
 @media (max-width: 760px) {
-  .image-lightbox {
-    padding: 64px 14px 20px;
+  .image-lightbox-stage {
+    padding: 64px 14px 76px;
   }
 
   .image-lightbox-close {
     top: 12px;
     right: 12px;
+  }
+
+  .image-lightbox-toolbar {
+    bottom: 12px;
   }
 
   .app-shell {
