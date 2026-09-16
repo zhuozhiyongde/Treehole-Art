@@ -71,8 +71,6 @@ export function AppView({ controller }: { controller: AppController }) {
         expandedCommentPids,
         bookmarkMenuPid,
         setBookmarkMenuPid,
-        copyMenuPid,
-        setCopyMenuPid,
         bookmarkBusy,
         bookmarkDeleteTarget,
         setBookmarkDeleteTarget,
@@ -113,7 +111,6 @@ export function AppView({ controller }: { controller: AppController }) {
         createEmptyBookmark,
         deleteBookmarkGroup,
         togglePraiseFor,
-        copyHole,
         copyPid,
         saveBlockingWords,
         handlePublished,
@@ -189,7 +186,6 @@ export function AppView({ controller }: { controller: AppController }) {
             className="app-shell"
             onClick={() => {
                 setBookmarkMenuPid(null);
-                setCopyMenuPid(null);
                 setMobileMenuOpen(false);
             }}>
             {mobileMenuOpen && (
@@ -434,26 +430,16 @@ export function AppView({ controller }: { controller: AppController }) {
                                     <HoleRow
                                         hole={hole}
                                         bookmarkOpen={bookmarkMenuPid === hole.pid}
-                                        copyOpen={copyMenuPid === hole.pid}
                                         bookmarkGroups={bookmarkGroups}
                                         bookmarkBusy={bookmarkBusy}
                                         praiseBusy={likingPids.has(hole.pid)}
                                         onOpenComments={() => openComments(hole)}
                                         onOpenBookmarkMenu={() => {
-                                            setCopyMenuPid(null);
                                             setBookmarkMenuPid((current) => (current === hole.pid ? null : hole.pid));
                                         }}
                                         onToggleBookmarkDirect={() => void toggleBookmarkDirect(hole)}
-                                        onOpenCopyMenu={() => {
-                                            setBookmarkMenuPid(null);
-                                            setCopyMenuPid((current) => (current === hole.pid ? null : hole.pid));
-                                        }}
                                         onToggleBookmark={(group) => void toggleBookmarkFor(hole, group)}
                                         onCreateBookmark={(name) => void createBookmarkFor(hole, name)}
-                                        onCopy={(includeComments) => {
-                                            setCopyMenuPid(null);
-                                            void copyHole(hole, includeComments);
-                                        }}
                                         onTogglePraise={() => void togglePraiseFor(hole)}
                                         onCopyPid={(pid) => void copyPid(pid)}
                                         onOpenReferencedHole={(pid) => void openReferencedPid(pid, hole)}
@@ -607,7 +593,6 @@ export function AppView({ controller }: { controller: AppController }) {
                             <HoleRow
                                 hole={currentDetailHole}
                                 bookmarkOpen={bookmarkMenuPid === currentDetailHole.pid}
-                                copyOpen={copyMenuPid === currentDetailHole.pid}
                                 bookmarkGroups={bookmarkGroups}
                                 bookmarkBusy={bookmarkBusy}
                                 praiseBusy={likingPids.has(currentDetailHole.pid)}
@@ -617,24 +602,13 @@ export function AppView({ controller }: { controller: AppController }) {
                                         ?.scrollIntoView({ behavior: 'smooth' })
                                 }
                                 onOpenBookmarkMenu={() => {
-                                    setCopyMenuPid(null);
                                     setBookmarkMenuPid((current) =>
                                         current === currentDetailHole.pid ? null : currentDetailHole.pid,
                                     );
                                 }}
                                 onToggleBookmarkDirect={() => void toggleBookmarkDirect(currentDetailHole)}
-                                onOpenCopyMenu={() => {
-                                    setBookmarkMenuPid(null);
-                                    setCopyMenuPid((current) =>
-                                        current === currentDetailHole.pid ? null : currentDetailHole.pid,
-                                    );
-                                }}
                                 onToggleBookmark={(group) => void toggleBookmarkFor(currentDetailHole, group)}
                                 onCreateBookmark={(name) => void createBookmarkFor(currentDetailHole, name)}
-                                onCopy={(includeComments) => {
-                                    setCopyMenuPid(null);
-                                    void copyHole(currentDetailHole, includeComments);
-                                }}
                                 onTogglePraise={() => void togglePraiseFor(currentDetailHole)}
                                 onCopyPid={(pid) => void copyPid(pid)}
                                 onOpenReferencedHole={(pid) => void openReferencedPid(pid, currentDetailHole)}
