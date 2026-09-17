@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://cdn.arthals.ink/bed/2026/09/cover-2952bcde9a55e1ae46b5035f12ee58c5.jpg" alt="Treehole-Art"/>
+<img src="./README.assets/cover.jpg" alt="Treehole-Art"/>
 
 # 🎨 Treehole-Art
 
@@ -24,13 +24,13 @@ Treehole-Art 是一款通过浏览器扩展安装的用户脚本（UserScript）
 - 支持浅色、深色以及跟随系统三种主题模式。
 - 评论区可在居中悬浮和信息流内展开两种模式间切换，偏好会保存在当前浏览器中。
 
-![light](https://cdn.arthals.ink/bed/2026/09/light-344295827e39fd2f5905c8a5f88f634d.png)
+![light](./README.assets/light.png)
 
-![dark](https://cdn.arthals.ink/bed/2026/09/dark-58c9fa764862cb3136b66d5308295a2d.png)
+![dark](./README.assets/dark.png)
 
-![light-mobile](https://cdn.arthals.ink/bed/2026/09/light-mobile-97a193176ccc3c6b08b3b65c84fde1b1.png)
+![light-mobile](./README.assets/light-mobile.png)
 
-![dark-mobile](https://cdn.arthals.ink/bed/2026/09/dark-mobile-c7f226113694fae6149df471beebd477.png)
+![dark-mobile](./README.assets/dark-mobile.png)
 
 ### `2` 完整的树洞浏览与互动
 
