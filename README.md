@@ -130,8 +130,6 @@ Treehole-Art 通过用户脚本安装，支持 Chrome、Edge、Arc 与 Safari。
     bun run build:userscript
     ```
 
-接口与数据结构说明参见 [API.md](./API.md)。完成修改后即可发起 Pull Request。
-
 ## 🚀 发版
 
 维护者可以用 `bun run release` 完成测试、用户脚本构建、CDN 上传与刷新，以及 GitHub Release 发布。密钥配置、版本规则、发布演练和故障恢复参见 [RELEASE.md](./RELEASE.md)。
