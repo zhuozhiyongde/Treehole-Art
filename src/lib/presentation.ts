@@ -20,6 +20,12 @@ export function fullTime(timestamp: number) {
     return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
+export function copyTime(timestamp: number) {
+    const date = new Date(timestamp * 1000);
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function messageTimestamp(value?: number | string) {
     if (typeof value === 'number') return value > 1e12 ? Math.floor(value / 1000) : value;
     if (!value) return 0;

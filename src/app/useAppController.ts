@@ -5,6 +5,7 @@ import {
     deleteBookmark,
     fetchBlockingWords,
     fetchBookmarks,
+    fetchComments,
     fetchFeed,
     fetchHole,
     fetchPostingIdentities,
@@ -16,6 +17,7 @@ import {
 } from '../api';
 import { withoutBookmarkGroup } from '../lib/bookmarks';
 import { writeClipboard } from '../lib/clipboard';
+import { commentSender, copyTime } from '../lib/presentation';
 import { displayText } from '../normalize';
 import { matchesAdvancedQuery, parseQuery, type ParsedQuery } from '../search';
 import {
@@ -34,6 +36,7 @@ import type {
     PostingIdentity,
     TagNode,
     ThemeMode,
+    TreeholeComment,
 } from '../types';
 
 const PAGE_SIZE = 8;
@@ -95,6 +98,7 @@ export function useAppController() {
     const [detailLoadingPid, setDetailLoadingPid] = useState<number | null>(null);
     const [expandedCommentPids, setExpandedCommentPids] = useState<Set<number>>(() => new Set());
     const [bookmarkMenuPid, setBookmarkMenuPid] = useState<number | null>(null);
+    const [copyMenuPid, setCopyMenuPid] = useState<number | null>(null);
     const [bookmarkBusy, setBookmarkBusy] = useState(false);
     const [bookmarkDeleteTarget, setBookmarkDeleteTarget] = useState<BookmarkGroup | null>(null);
     const [blockingWordsOpen, setBlockingWordsOpen] = useState(false);
@@ -303,6 +307,7 @@ export function useAppController() {
         setSelectedHole(null);
         setDetailStack([]);
         setExpandedCommentPids(new Set());
+        setCopyMenuPid(null);
         setMobileMenuOpen(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -318,6 +323,7 @@ export function useAppController() {
         setDetailStack([]);
         setExpandedCommentPids(new Set());
         setBookmarkMenuPid(null);
+        setCopyMenuPid(null);
         setMobileMenuOpen(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -329,6 +335,7 @@ export function useAppController() {
         setSelectedHole(null);
         setDetailStack([]);
         setExpandedCommentPids(new Set());
+        setCopyMenuPid(null);
         setSelectedBookmark(undefined);
         if (normalizedSource) {
             setRecentSearches((current) =>
@@ -698,6 +705,36 @@ export function useAppController() {
         }
     };
 
+    const copyHole = __ENABLE_COPY__
+        ? async (hole: Hole, includeComments: boolean) => {
+              try {
+                  let output = `#${hole.pid} ${copyTime(hole.timestamp)} 关注数：${hole.likenum ?? 0} 回复数：${hole.reply ?? 0}\n${displayText(hole.text) || (hole.type === 'image' ? '[图片]' : '')}`;
+                  if (includeComments && hole.reply > 0) {
+                      setToast('正在整理正文和评论...');
+                      const allComments: TreeholeComment[] = [];
+                      let nextPage = 1;
+                      let finalPage = 1;
+                      do {
+                          const result = await fetchComments(hole, nextPage, 'asc');
+                          allComments.push(...result.items);
+                          finalPage = result.lastPage;
+                          nextPage += 1;
+                      } while (nextPage <= finalPage);
+                      output += `\n${allComments
+                          .map((comment) => {
+                              const sender = commentSender(comment);
+                              return `#${comment.cid} ${copyTime(comment.timestamp)}\n[${sender}] ${displayText(comment.text) || (comment.media_ids ? '[图片]' : '')}`;
+                          })
+                          .join('\n')}`;
+                  }
+                  await writeClipboard(output);
+                  setToast(includeComments ? '已复制正文和评论' : '已复制正文');
+              } catch (nextError) {
+                  setToast(nextError instanceof Error ? nextError.message : '复制失败');
+              }
+          }
+        : undefined;
+
     const copyPid = async (pid: number) => {
         try {
             await writeClipboard(String(pid));
@@ -770,6 +807,8 @@ export function useAppController() {
         expandedCommentPids,
         bookmarkMenuPid,
         setBookmarkMenuPid,
+        copyMenuPid,
+        setCopyMenuPid,
         bookmarkBusy,
         bookmarkDeleteTarget,
         setBookmarkDeleteTarget,
@@ -810,6 +849,7 @@ export function useAppController() {
         createEmptyBookmark,
         deleteBookmarkGroup,
         togglePraiseFor,
+        copyHole,
         copyPid,
         saveBlockingWords,
         handlePublished,

@@ -38,6 +38,9 @@ const changelogPath = fileURLToPath(
 const artifactPath = fileURLToPath(
   new URL("../dist/Treehole-Art.user.js", import.meta.url),
 );
+const copyArtifactPath = fileURLToPath(
+  new URL("../dist/Treehole-Art-copy.user.js", import.meta.url),
+);
 const packageJson = (await Bun.file(packageJsonPath).json()) as Record<
   string,
   unknown
@@ -63,15 +66,17 @@ if (args.size > 0) {
 
 const version = packageJson.version;
 const tag = `v${version}`;
-const bucket = process.env.CDN_BUCKET || "CDN_BUCKET_REDACTED";
-const endpoint =
-  process.env.CDN_ENDPOINT || "CDN_ENDPOINT_REDACTED";
 const region = process.env.CDN_REGION || "ap-beijing";
 const objectKey =
   process.env.CDN_OBJECT_KEY || "release/Treehole-Art.user.js";
+const copyObjectKey =
+  process.env.CDN_COPY_OBJECT_KEY || "release/Treehole-Art-copy.user.js";
 const publicUrl =
   process.env.CDN_PUBLIC_URL ||
   "https://cdn.arthals.ink/release/Treehole-Art.user.js";
+const copyPublicUrl =
+  process.env.CDN_COPY_PUBLIC_URL ||
+  "https://cdn.arthals.ink/release/Treehole-Art-copy.user.js";
 const refreshUrl =
   process.env.CDN_REFRESH_URL || "https://cdn.arthals.ink/release/";
 const githubRepository =
@@ -198,10 +203,14 @@ async function advanceVersion(): Promise<string> {
   return nextVersion;
 }
 
-async function validateArtifact(): Promise<void> {
-  const artifact = Bun.file(artifactPath);
+async function validateArtifact(
+  path: string,
+  expectedUrl: string,
+  copyEnabled: boolean,
+): Promise<void> {
+  const artifact = Bun.file(path);
   if (!(await artifact.exists())) {
-    throw new Error(`构建产物不存在：${artifactPath}`);
+    throw new Error(`构建产物不存在：${path}`);
   }
 
   const content = await artifact.text();
@@ -211,11 +220,17 @@ async function validateArtifact(): Promise<void> {
       `产物版本不一致：package.json=${version}，userscript=${builtVersion || "未找到"}`,
     );
   }
-  if (!content.includes(`// @downloadURL  ${publicUrl}`)) {
-    throw new Error("构建产物中的 @downloadURL 与 CDN_PUBLIC_URL 不一致");
+  if (!content.includes(`// @downloadURL  ${expectedUrl}`)) {
+    throw new Error(`构建产物 ${path} 中的 @downloadURL 与目标 CDN URL 不一致`);
   }
-  if (!content.includes(`// @updateURL    ${publicUrl}`)) {
-    throw new Error("构建产物中的 @updateURL 与 CDN_PUBLIC_URL 不一致");
+  if (!content.includes(`// @updateURL    ${expectedUrl}`)) {
+    throw new Error(`构建产物 ${path} 中的 @updateURL 与目标 CDN URL 不一致`);
+  }
+  const hasCopyFeature = content.includes("正文和评论");
+  if (hasCopyFeature !== copyEnabled) {
+    throw new Error(
+      `${path} 的复制功能状态错误：预期 ${copyEnabled ? "开启" : "关闭"}`,
+    );
   }
 }
 
@@ -293,6 +308,9 @@ async function publishGitHubDraft(
 }
 
 async function uploadToCdn(): Promise<void> {
+  const bucket = requireEnvironment("CDN_BUCKET");
+  const endpoint = requireEnvironment("CDN_ENDPOINT");
+
   if (!refreshUrl.endsWith("/")) {
     throw new Error(
       "CDN_REFRESH_URL 必须是以 / 结尾的目录 URL；当前刷新类型为 path",
@@ -306,7 +324,10 @@ async function uploadToCdn(): Promise<void> {
     true,
   );
 
-  console.log(`[CDN] 上传 ${artifactPath} -> s3://${bucket}/${objectKey}`);
+  const uploads = [
+    { path: artifactPath, key: objectKey },
+    { path: copyArtifactPath, key: copyObjectKey },
+  ];
   const client = new S3Client({
     endpoint,
     region,
@@ -318,16 +339,19 @@ async function uploadToCdn(): Promise<void> {
   });
 
   try {
-    const body = new Uint8Array(await Bun.file(artifactPath).arrayBuffer());
-    await client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: objectKey,
-        Body: body,
-        CacheControl: "public, max-age=300",
-        ContentType: "application/javascript; charset=utf-8",
-      }),
-    );
+    for (const upload of uploads) {
+      console.log(`[CDN] 上传 ${upload.path} -> s3://${bucket}/${upload.key}`);
+      const body = new Uint8Array(await Bun.file(upload.path).arrayBuffer());
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: upload.key,
+          Body: body,
+          CacheControl: "public, max-age=300",
+          ContentType: "application/javascript; charset=utf-8",
+        }),
+      );
+    }
   } finally {
     client.destroy();
   }
@@ -369,10 +393,12 @@ async function main(): Promise<void> {
   await run(["bun", "test"]);
   console.log("[构建] 生成用户脚本");
   await run(["bun", "run", "build:userscript"]);
-  await validateArtifact();
+  await validateArtifact(artifactPath, publicUrl, false);
+  await validateArtifact(copyArtifactPath, copyPublicUrl, true);
 
   if (dryRun) {
     console.log(`[演练完成] 将上传到 ${publicUrl}`);
+    console.log(`[演练完成] 将上传到 ${copyPublicUrl}`);
     if (!cdnOnly) {
       console.log(`[演练完成] 将创建 GitHub Release ${tag}`);
     }
@@ -402,6 +428,7 @@ async function main(): Promise<void> {
   }
 
   console.log(`[发布完成] ${publicUrl}`);
+  console.log(`[发布完成] ${copyPublicUrl}`);
 }
 
 main().catch((error: unknown) => {

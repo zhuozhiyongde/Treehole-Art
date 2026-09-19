@@ -1,12 +1,14 @@
 import {
     AwardRegular,
     BookmarkRegular,
+    Copy2Regular,
     DownSmallRegular,
     HeartRegular,
     Message3Regular,
     ShieldRegular,
 } from '@mingcute/react/core-regular';
 import { BookmarkFilled, HeartFilled, Message3Filled } from '@mingcute/react/core-filled';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { IdentityBadges } from '../../components/IdentityBadges';
 import { ExpandableRichText } from '../../components/RichText';
@@ -34,14 +36,17 @@ function referencedPidFor(hole: Hole) {
 export function HoleRow({
     hole,
     bookmarkOpen,
+    copyOpen,
     bookmarkGroups,
     bookmarkBusy,
     praiseBusy,
     onOpenComments,
     onOpenBookmarkMenu,
     onToggleBookmarkDirect,
+    onOpenCopyMenu,
     onToggleBookmark,
     onCreateBookmark,
+    onCopy,
     onTogglePraise,
     onCopyPid,
     onOpenReferencedHole,
@@ -51,14 +56,17 @@ export function HoleRow({
 }: {
     hole: Hole;
     bookmarkOpen: boolean;
+    copyOpen?: boolean;
     bookmarkGroups: BookmarkGroup[];
     bookmarkBusy: boolean;
     praiseBusy: boolean;
     onOpenComments: () => void;
     onOpenBookmarkMenu: () => void;
     onToggleBookmarkDirect: () => void;
+    onOpenCopyMenu?: () => void;
     onToggleBookmark: (group: BookmarkGroup) => void;
     onCreateBookmark: (name: string) => void;
+    onCopy?: (includeComments: boolean) => void;
     onTogglePraise: () => void;
     onCopyPid: (pid: number) => void;
     onOpenReferencedHole: (pid: number) => void;
@@ -69,6 +77,12 @@ export function HoleRow({
     const blockedWord = blockingWords.find((word) => displayText(hole.text).includes(word));
     const [showBlockedContent, setShowBlockedContent] = useState(false);
     useEffect(() => setShowBlockedContent(false), [blockedWord, hole.pid]);
+    const openCopyMenu = (event: ReactMouseEvent) => {
+        event.stopPropagation();
+        if (!__ENABLE_COPY__) return;
+        if (event.altKey) onCopy?.(true);
+        else onOpenCopyMenu?.();
+    };
 
     const tag = hole.label_info?.tag_name || hole.tag;
     const tone = tagTone(hole.label_info?.id ?? hole.pid);
@@ -215,6 +229,40 @@ export function HoleRow({
                     {hole.is_praise ? <HeartFilled size={16} /> : <HeartRegular size={16} />}
                     <span>{praiseCount}</span>
                 </button>
+                {__ENABLE_COPY__ && (
+                    <div className="copy-anchor">
+                        <button
+                            type="button"
+                            className="copy-hole"
+                            aria-expanded={copyOpen}
+                            onClick={openCopyMenu}
+                            title="选择复制范围；桌面端可按 Alt/Option 点击直接复制正文和评论">
+                            <Copy2Regular size={16} />
+                            <span>复制</span>
+                        </button>
+                        {copyOpen && (
+                            <div
+                                className="popover copy-popover"
+                                role="menu"
+                                onClick={(event) => event.stopPropagation()}>
+                                <button type="button" role="menuitem" onClick={() => onCopy?.(false)}>
+                                    <Copy2Regular size={16} />
+                                    <span>
+                                        <strong>复制正文</strong>
+                                        <small>洞号、时间与正文</small>
+                                    </span>
+                                </button>
+                                <button type="button" role="menuitem" onClick={() => onCopy?.(true)}>
+                                    <Message3Regular size={16} />
+                                    <span>
+                                        <strong>正文和评论</strong>
+                                        <small>移动端也可直接选择</small>
+                                    </span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </article>
     );

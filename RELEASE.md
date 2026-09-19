@@ -46,10 +46,10 @@
 正式发布依次完成以下操作：
 
 1. 为 changelog 和已有暂存改动创建 GPG 签名提交。
-2. 运行全部测试，并构建 `dist/Treehole-Art.user.js`。
+2. 运行全部测试并构建发布产物。
 3. 校验产物中的 `@version`、`@downloadURL` 和 `@updateURL`。
-4. 创建或更新 `v<版本号>` GitHub Release 草稿，并上传用户脚本附件。
-5. 向 `CDN_BUCKET_REDACTED/release/Treehole-Art.user.js` 上传产物。
+4. 创建或更新 `v<版本号>` GitHub Release 草稿，并上传公开发布附件。
+5. 将发布产物上传到配置的 CDN。
 6. 刷新 `https://cdn.arthals.ink/release/` 目录的 CDN 缓存。
 7. 将 GitHub Release 从草稿发布为正式版本。
 8. 将 `package.json` 的补丁版本加一，作为下一次发布的版本。
@@ -60,11 +60,11 @@
 bun run release -- --cdn-only
 ```
 
-`--cdn-only` 仍会重新测试、构建并校验产物，但不会检查或创建 GitHub Release，也不会推进版本号。
+`--cdn-only` 仍会重新测试、构建、校验并上传 CDN 产物，但不会检查或创建 GitHub Release，也不会推进版本号。
 
 ## 可配置项
 
-`.env.example` 中的 `CDN_*` 给出了当前默认值。迁移存储桶或域名时可覆盖它们：
+复制 `.env.example` 创建 `.env`，再在本地填写 CDN 配置：
 
 - `CDN_BUCKET`：COS 存储桶名称。
 - `CDN_ENDPOINT` / `CDN_REGION`：S3 兼容端点与地域。

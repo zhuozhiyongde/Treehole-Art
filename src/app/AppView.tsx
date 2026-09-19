@@ -70,6 +70,8 @@ export function AppView({ controller }: { controller: AppController }) {
         expandedCommentPids,
         bookmarkMenuPid,
         setBookmarkMenuPid,
+        copyMenuPid,
+        setCopyMenuPid,
         bookmarkBusy,
         bookmarkDeleteTarget,
         setBookmarkDeleteTarget,
@@ -110,6 +112,7 @@ export function AppView({ controller }: { controller: AppController }) {
         createEmptyBookmark,
         deleteBookmarkGroup,
         togglePraiseFor,
+        copyHole,
         copyPid,
         saveBlockingWords,
         handlePublished,
@@ -185,6 +188,7 @@ export function AppView({ controller }: { controller: AppController }) {
             className="app-shell"
             onClick={() => {
                 setBookmarkMenuPid(null);
+                if (__ENABLE_COPY__) setCopyMenuPid(null);
                 setMobileMenuOpen(false);
             }}>
             {mobileMenuOpen && (
@@ -429,11 +433,27 @@ export function AppView({ controller }: { controller: AppController }) {
                                     <HoleRow
                                         hole={hole}
                                         bookmarkOpen={bookmarkMenuPid === hole.pid}
+                                        {...(__ENABLE_COPY__
+                                            ? {
+                                                  copyOpen: copyMenuPid === hole.pid,
+                                                  onOpenCopyMenu: () => {
+                                                      setBookmarkMenuPid(null);
+                                                      setCopyMenuPid((current) =>
+                                                          current === hole.pid ? null : hole.pid,
+                                                      );
+                                                  },
+                                                  onCopy: (includeComments: boolean) => {
+                                                      setCopyMenuPid(null);
+                                                      void copyHole?.(hole, includeComments);
+                                                  },
+                                              }
+                                            : {})}
                                         bookmarkGroups={bookmarkGroups}
                                         bookmarkBusy={bookmarkBusy}
                                         praiseBusy={likingPids.has(hole.pid)}
                                         onOpenComments={() => openComments(hole)}
                                         onOpenBookmarkMenu={() => {
+                                            if (__ENABLE_COPY__) setCopyMenuPid(null);
                                             setBookmarkMenuPid((current) => (current === hole.pid ? null : hole.pid));
                                         }}
                                         onToggleBookmarkDirect={() => void toggleBookmarkDirect(hole)}
@@ -592,6 +612,21 @@ export function AppView({ controller }: { controller: AppController }) {
                             <HoleRow
                                 hole={currentDetailHole}
                                 bookmarkOpen={bookmarkMenuPid === currentDetailHole.pid}
+                                {...(__ENABLE_COPY__
+                                    ? {
+                                          copyOpen: copyMenuPid === currentDetailHole.pid,
+                                          onOpenCopyMenu: () => {
+                                              setBookmarkMenuPid(null);
+                                              setCopyMenuPid((current) =>
+                                                  current === currentDetailHole.pid ? null : currentDetailHole.pid,
+                                              );
+                                          },
+                                          onCopy: (includeComments: boolean) => {
+                                              setCopyMenuPid(null);
+                                              void copyHole?.(currentDetailHole, includeComments);
+                                          },
+                                      }
+                                    : {})}
                                 bookmarkGroups={bookmarkGroups}
                                 bookmarkBusy={bookmarkBusy}
                                 praiseBusy={likingPids.has(currentDetailHole.pid)}
@@ -601,6 +636,7 @@ export function AppView({ controller }: { controller: AppController }) {
                                         ?.scrollIntoView({ behavior: 'smooth' })
                                 }
                                 onOpenBookmarkMenu={() => {
+                                    if (__ENABLE_COPY__) setCopyMenuPid(null);
                                     setBookmarkMenuPid((current) =>
                                         current === currentDetailHole.pid ? null : currentDetailHole.pid,
                                     );
