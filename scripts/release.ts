@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { commitReleaseChanges } from "./release-git.ts";
 import {
   createChangelogDraft,
   nextPatchVersion,
@@ -358,6 +359,9 @@ async function main(): Promise<void> {
     }
     requireEnvironment("DOGECLOUD_ACCESS_KEY");
     requireEnvironment("DOGECLOUD_SECRET_KEY");
+    if (!cdnOnly) {
+      await commitReleaseChanges(version, run);
+    }
   }
 
   console.log(`[Release] Treehole-Art ${tag}`);

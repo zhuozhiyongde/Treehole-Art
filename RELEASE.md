@@ -29,14 +29,15 @@
 
 1. 运行 `bun run release`。如果 `CHANGELOG.md` 不存在，或没有当前版本的条目，脚本会在文件顶部生成 `## [x.y.z] - YYYY-MM-DD` 草稿并结束。
 2. 补充草稿中的发布说明后重新运行 `bun run release`。最新一条 changelog 的版本必须与 `package.json` 一致，该条目会成为 GitHub Release 说明。
-3. 发布脚本不检查工作区是否干净，也不要求当前提交已推送；它只会拒绝已经正式发布过的同版本 GitHub Release。已有草稿 Release 时会继续发布。
-4. 如需先演练测试和构建：
+3. 正式发布前，脚本会确认同版本尚未正式发布，再自动暂存 `CHANGELOG.md`，并执行 `git commit -S -m "👷 ci: Vx.y.z"`。因此，运行命令前已经暂存的改动会进入同一个 GPG 签名提交；除 `CHANGELOG.md` 外的未暂存改动不会被加入。
+4. 发布脚本不要求工作区干净，也不要求当前提交已推送。已有草稿 Release 时会继续发布；`--dry-run` 和 `--cdn-only` 不会创建发布提交。
+5. 如需先演练测试和构建：
 
     ```bash
     bun run release -- --dry-run
     ```
 
-5. 正式发布：
+6. 正式发布：
 
     ```bash
     bun run release
@@ -44,13 +45,14 @@
 
 正式发布依次完成以下操作：
 
-1. 运行全部测试，并构建 `dist/Treehole-Art.user.js`。
-2. 校验产物中的 `@version`、`@downloadURL` 和 `@updateURL`。
-3. 创建或更新 `v<版本号>` GitHub Release 草稿，并上传用户脚本附件。
-4. 向 `CDN_BUCKET_REDACTED/release/Treehole-Art.user.js` 上传产物。
-5. 刷新 `https://cdn.arthals.ink/release/` 目录的 CDN 缓存。
-6. 将 GitHub Release 从草稿发布为正式版本。
-7. 将 `package.json` 的补丁版本加一，作为下一次发布的版本。
+1. 为 changelog 和已有暂存改动创建 GPG 签名提交。
+2. 运行全部测试，并构建 `dist/Treehole-Art.user.js`。
+3. 校验产物中的 `@version`、`@downloadURL` 和 `@updateURL`。
+4. 创建或更新 `v<版本号>` GitHub Release 草稿，并上传用户脚本附件。
+5. 向 `CDN_BUCKET_REDACTED/release/Treehole-Art.user.js` 上传产物。
+6. 刷新 `https://cdn.arthals.ink/release/` 目录的 CDN 缓存。
+7. 将 GitHub Release 从草稿发布为正式版本。
+8. 将 `package.json` 的补丁版本加一，作为下一次发布的版本。
 
 如 CDN 阶段失败，GitHub Release 会留在草稿状态；修复网络或配置后重新运行 `bun run release` 即可续发。若只需要重新覆盖 CDN 文件，可运行：
 
