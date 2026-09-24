@@ -56,7 +56,7 @@ export function parseQuery(source: string): ParsedQuery {
   const orQueries = uniqueTerms(
     baseParts
       .join(" ")
-      .split("|")
+      .split(/[|｜]/)
       .map((part) => part.replace(/\s+/g, " ").trim())
       .filter(Boolean),
   );

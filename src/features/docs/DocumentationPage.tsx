@@ -44,9 +44,9 @@ export function DocumentationPage() {
                         <p>直接交给树洞搜索接口；输入多个词时可使用空格。</p>
                     </div>
                     <div>
-                        <code>A | B</code>
+                        <code>A | B / A ｜ B</code>
                         <strong>或搜索</strong>
-                        <p>使用竖线分隔条件，任意一个条件匹配即可。</p>
+                        <p>使用半角 | 或全角 ｜ 分隔条件，任意一个条件匹配即可。</p>
                     </div>
                     <div>
                         <code>-:关键词</code>

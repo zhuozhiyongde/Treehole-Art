@@ -2,6 +2,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import styles from "./styles.css?inline";
+import favicon from "./assets/favicon.svg?raw";
+
+const faviconUrl = `data:image/svg+xml,${encodeURIComponent(favicon)}`;
 
 const isNewTreeholePage = window.location.hostname === "treehole.pku.edu.cn"
   && window.location.pathname.startsWith("/ch/");
@@ -51,6 +54,12 @@ function startTreeholeArt() {
         .forEach((node) => node.remove());
     }
     document.documentElement.classList.add("treehole-art-active");
+    document.querySelectorAll('link[rel~="icon"]').forEach((icon) => icon.remove());
+    const icon = document.createElement("link");
+    icon.rel = "icon";
+    icon.type = "image/svg+xml";
+    icon.href = faviconUrl;
+    document.head.appendChild(icon);
     if (!document.getElementById("treehole-art-styles")) {
       const style = document.createElement("style");
       style.id = "treehole-art-styles";

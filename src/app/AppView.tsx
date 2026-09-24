@@ -281,11 +281,11 @@ export function AppView({ controller }: { controller: AppController }) {
                             value={queryInput}
                             onChange={(event) => setQueryInput(event.target.value)}
                             onClick={() => setSearchHistoryOpen(true)}
-                            placeholder="搜索内容或 #洞号，| 或搜索"
+                            placeholder="搜索内容或 #洞号，| / ｜ 或搜索"
                             aria-label="搜索树洞"
                             aria-expanded={searchHistoryOpen && recentSearches.length > 0}
                             aria-controls="recent-searches"
-                            title="使用 | 分隔或搜索，使用 -:关键字 排除包含该词的结果"
+                            title="使用 | 或 ｜ 分隔或搜索，使用 -:关键字 排除包含该词的结果"
                         />
                         {queryInput && (
                             <IconButton label="清空搜索" className="search-clear" onClick={clearSearch}>

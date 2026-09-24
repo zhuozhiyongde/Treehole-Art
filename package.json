@@ -1,12 +1,13 @@
 {
   "name": "treehole-art",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.2.3",
   "license": "GPL-3.0 license",
   "packageManager": "bun@1.2.20",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:userscript": "TREEHOLE_ART=1 vite",
     "build": "tsc -b && vite build",
     "build:userscript": "tsc -b && TREEHOLE_ART=1 ENABLE_COPY=0 vite build && TREEHOLE_ART=1 ENABLE_COPY=1 vite build",
     "release": "bun scripts/release.ts",
